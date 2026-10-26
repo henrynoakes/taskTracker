@@ -1,5 +1,5 @@
+import sqlite3
 from datetime import date
-
 from .models import Task
 from .validation import (
     validate_due_date,
@@ -9,79 +9,70 @@ from .validation import (
     validate_priority,
     validators,
 )
+from . import database as db
+
+
+def add_task(  # A wrapper for insert_task
+    connection: sqlite3.Connection,
+    name: str,
+    priority: int,
+    duration: int,
+    due_date: date | None = None,
+) -> int:
+    validate_name(name)
+    validate_priority(priority)
+    validate_duration(duration)
+    validate_due_date(due_date)
+
+    return db.insert_task(
+        connection,
+        name,
+        priority,
+        duration,
+        due_date,
+    )
 
 
 class TaskNotFoundError(LookupError):
     pass
 
 
-def add_task(
-    task_list: list[Task],
-    name: str,
-    priority: int,
-    duration: int,
-    due_date: date | None = None,
-) -> None:
-    # validation step
-    validate_name(name)
-    validate_priority(priority)
-    validate_duration(duration)
-    validate_due_date(due_date)
-
-    task = Task(
-        id=len(task_list) + 1,
-        name=name,
-        due_date=due_date,
-        priority=priority,
-        duration=duration,
-    )
-
-    task_list.append(task)
-
-
-def find_task(
-    task_list: list[Task], task_id: int
-) -> (
-    Task | None
-):  # For when the task doesn't need to exist. If it doesn't it just returns None, which can be useful.
-    for task in task_list:
-        if task.id == task_id:
-            return task
-    return None
-
-
-def get_task(
-    task_list: list[Task], task_id: int
+def get_task(  # Wrapper of find_task which raises an error if task not found
+    database: sqlite3.Connection, task_id: int
 ) -> Task:  # For when the task needs to exist. If it doesn't it causes an error.
-    task = find_task(task_list, task_id)
+    task = db.find_task(database, task_id)
     if task is None:
         raise TaskNotFoundError(f"Task with id {task_id} was not found")
     return task
 
 
-def complete_task(task_list: list[Task], task_id: int) -> bool:
-    task = find_task(task_list, task_id)
-    if task is not None:
-        task.completed = True
-        return True
-    return False
+def complete_task(database: sqlite3.Connection, task_id: int) -> bool:
+    task = db.find_task(database, task_id)
+
+    if task is None:
+        return False
+
+    task.completed = True
+    return db.update_task(database, task)
 
 
-def delete_task(task_list: list[Task], task_id: int) -> bool:
-    task = find_task(task_list, task_id)
-    if task is not None:
-        task_list.remove(task)
-        return True
-    return False
-
-
-def edit_task(task_list: list[Task], task_id: int, field: str, value: object) -> bool:
-    # Validation step
+def edit_task(
+    database: sqlite3.Connection, task_id: int, field: str, value: object
+) -> bool:
     validate_fields(field)
     validators[field](value)
 
-    task = find_task(task_list, task_id)
-    if task is not None:
-        setattr(task, field, value)
-        return True
-    return False
+    task = db.find_task(database, task_id)
+
+    if task is None:
+        return False
+
+    setattr(task, field, value)
+    return db.update_task(database, task)
+
+
+def delete_task(  # Just a wrapper for delete_task_db
+    database: sqlite3.Connection,
+    task_id: int,
+) -> bool:
+    return db.delete_task(database, task_id)
