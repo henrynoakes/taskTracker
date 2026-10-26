@@ -1,14 +1,6 @@
 import sqlite3
 from datetime import UTC, date, datetime
 from .models import Task
-from tasktracker.validation import (
-    validate_due_date,
-    validate_duration,
-    validate_fields,
-    validate_name,
-    validate_priority,
-    validators,
-)
 
 
 # The row format:
@@ -107,7 +99,6 @@ def insert_task(
             "completed": 0,
         },
     )
-    database.commit()
 
     task_id = cursor.lastrowid
 
@@ -132,7 +123,6 @@ def update_task(database: sqlite3.Connection, task: Task) -> bool:
         task_to_params(task),
     )
 
-    database.commit()
     return cursor.rowcount > 0
 
 
@@ -155,5 +145,5 @@ def delete_task(
         "DELETE FROM tasks WHERE id = ?",
         (task_id,),
     )
-    database.commit()
+
     return cursor.rowcount > 0  # Returns true if the nuber of deleted rows is > 0
