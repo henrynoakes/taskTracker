@@ -25,7 +25,8 @@ def test_connect_database_invalid_path(tmp_path: Path) -> None:
 
 
 def test_initialize_database_is_idempotent(connection: sqlite3.Connection) -> None:
-    task_id = db.insert_task(connection, "Keep me", 1, 1)
+    with connection:
+        task_id = db.insert_task(connection, "Keep me", 1, 1)
     before = db.find_task(connection, task_id)
     db.initialize_database(connection)
     assert db.find_task(connection, task_id) == before
@@ -88,7 +89,8 @@ def test_task_to_params(due_date: date | None, completed: bool) -> None:
 @pytest.mark.parametrize("due_date", [None, date(2026, 11, 10)])
 def test_insert_task(connection: sqlite3.Connection, due_date: date | None) -> None:
     before = datetime.now(UTC)
-    task_id = db.insert_task(connection, "日本語 ' ; DROP TABLE tasks; --", 5, 10, due_date)
+    with connection:
+        task_id = db.insert_task(connection, "日本語 ' ; DROP TABLE tasks; --", 5, 10, due_date)
     after = datetime.now(UTC)
     row = connection.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
     assert type(task_id) is int
@@ -104,8 +106,10 @@ def test_insert_task(connection: sqlite3.Connection, due_date: date | None) -> N
 
 
 def test_insert_generates_distinct_ids(connection: sqlite3.Connection) -> None:
-    first = db.insert_task(connection, "Same name", 1, 1)
-    second = db.insert_task(connection, "Same name", 1, 1)
+    with connection:
+        first = db.insert_task(connection, "Same name", 1, 1)
+    with connection:
+        second = db.insert_task(connection, "Same name", 1, 1)
     assert first != second
     assert db.find_task(connection, first).name == "Same name"
     assert db.find_task(connection, second).name == "Same name"
@@ -140,29 +144,35 @@ def test_update_task_preserves_id_creation_time_and_other_rows(
     )
     # created_at is immutable in storage even if the caller changes its snapshot.
     supplied = replace(updated, created_at=datetime(2000, 1, 1, tzinfo=UTC))
-    assert db.update_task(connection, supplied) is True
+    with connection:
+        assert db.update_task(connection, supplied) is True
     assert db.find_task(connection, second) == updated
     assert db.find_task(connection, first) == other
-    assert db.update_task(connection, updated) is True
+    with connection:
+        assert db.update_task(connection, updated) is True
 
 
 def test_update_missing_task_does_not_insert(connection: sqlite3.Connection) -> None:
     task = Task(id=999, name="Missing", priority=1, duration=1, created_at=datetime.now(UTC))
-    assert db.update_task(connection, task) is False
+    with connection:
+        assert db.update_task(connection, task) is False
     assert connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == 0
 
 
 def test_delete_task(connection: sqlite3.Connection, task_ids: tuple[int, int]) -> None:
     first, second = task_ids
     other = db.find_task(connection, second)
-    assert db.delete_task(connection, first) is True
+    with connection:
+        assert db.delete_task(connection, first) is True
     assert db.find_task(connection, first) is None
     assert db.find_task(connection, second) == other
-    assert db.delete_task(connection, first) is False
+    with connection:
+        assert db.delete_task(connection, first) is False
 
 
 def test_delete_missing_task_from_empty_database(connection: sqlite3.Connection) -> None:
-    assert db.delete_task(connection, 999) is False
+    with connection:
+        assert db.delete_task(connection, 999) is False
 
 
 @pytest.mark.parametrize(
@@ -178,10 +188,11 @@ def test_schema_rejects_constraint_violations(
     values = dict(name="Task", priority=1, duration=1, created_at="2026-10-01T12:00:00+00:00", completed=0)
     values[field] = value
     with pytest.raises(sqlite3.IntegrityError):
-        connection.execute(
-            "INSERT INTO tasks (name, priority, duration, created_at, completed) "
-            "VALUES (:name, :priority, :duration, :created_at, :completed)", values,
-        )
+        with connection:
+            connection.execute(
+                "INSERT INTO tasks (name, priority, duration, created_at, completed) "
+                "VALUES (:name, :priority, :duration, :created_at, :completed)", values,
+            )
     assert connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == 0
 
 
@@ -191,8 +202,8 @@ def test_invalid_update_preserves_stored_task(
 ) -> None:
     original = db.find_task(connection, task_ids[0])
     with pytest.raises(sqlite3.IntegrityError):
-        db.update_task(connection, replace(original, priority=priority, duration=duration))
-    connection.rollback()
+        with connection:
+            db.update_task(connection, replace(original, priority=priority, duration=duration))
     assert db.find_task(connection, task_ids[0]) == original
 
 
@@ -201,20 +212,74 @@ def test_changes_persist_after_reconnecting(tmp_path: Path, operation: str) -> N
     path = str(tmp_path / "tasks.db")
     connection = db.connect_database(path)
     try:
-        db.initialize_database(connection)
-        task_id = db.insert_task(connection, "Original", 1, 3, date(2026, 11, 10))
+        with connection:
+            db.initialize_database(connection)
+            task_id = db.insert_task(connection, "Original", 1, 3, date(2026, 11, 10))
         expected = db.find_task(connection, task_id)
-        if operation == "update":
-            expected = replace(expected, name="Saved change", completed=True, due_date=None)
-            assert db.update_task(connection, expected) is True
-        elif operation == "delete":
-            assert db.delete_task(connection, task_id) is True
-            expected = None
+        with connection:
+            if operation == "update":
+                expected = replace(expected, name="Saved change", completed=True, due_date=None)
+                assert db.update_task(connection, expected) is True
+            elif operation == "delete":
+                assert db.delete_task(connection, task_id) is True
+                expected = None
     finally:
         connection.close()
 
     reopened = db.connect_database(path)
     try:
         assert db.find_task(reopened, task_id) == expected
+    finally:
+        reopened.close()
+
+
+@pytest.mark.parametrize("operation", ["insert", "update", "delete"])
+@pytest.mark.parametrize("failure", ["constraint", "application"])
+def test_failed_transaction_rolls_back_changes_after_reconnecting(
+    tmp_path: Path, operation: str, failure: str,
+) -> None:
+    path = str(tmp_path / "tasks.db")
+    connection = db.connect_database(path)
+    try:
+        with connection:
+            db.initialize_database(connection)
+            task_id = db.insert_task(connection, "Original", 1, 3)
+            other_id = db.insert_task(connection, "Unrelated", 2, 4)
+        original = db.find_task(connection, task_id)
+        other = db.find_task(connection, other_id)
+        inserted_id = None
+
+        error = sqlite3.IntegrityError if failure == "constraint" else RuntimeError
+        with pytest.raises(error):
+            with connection:
+                if operation == "insert":
+                    inserted_id = db.insert_task(connection, "Temporary", 1, 1)
+                    assert db.find_task(connection, inserted_id) is not None
+                elif operation == "update":
+                    assert db.update_task(connection, replace(original, name="Temporary")) is True
+                    assert db.find_task(connection, task_id).name == "Temporary"
+                else:
+                    assert db.delete_task(connection, task_id) is True
+                    assert db.find_task(connection, task_id) is None
+
+                if failure == "constraint":
+                    db.insert_task(connection, "Invalid priority", 6, 1)
+                else:
+                    raise RuntimeError("Failure after a successful write")
+
+        assert connection.in_transaction is False
+        assert db.find_task(connection, task_id) == original
+        assert db.find_task(connection, other_id) == other
+        assert connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == 2
+        if inserted_id is not None:
+            assert db.find_task(connection, inserted_id) is None
+    finally:
+        connection.close()
+
+    reopened = db.connect_database(path)
+    try:
+        assert db.find_task(reopened, task_id) == original
+        assert db.find_task(reopened, other_id) == other
+        assert reopened.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == 2
     finally:
         reopened.close()
