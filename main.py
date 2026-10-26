@@ -1,5 +1,6 @@
 from datetime import date
 
+from tasktracker.models import Task
 from tasktracker.operations import (
     add_task,
     complete_task,
@@ -10,8 +11,8 @@ from tasktracker.operations import (
 )
 
 
-def main():
-    tasks = []
+def main() -> None:
+    tasks: list[Task] = []
 
     add_task(tasks, "Maths", 1, 3)
 
