@@ -44,19 +44,19 @@ def find_task(
 ) -> (
     Task | None
 ):  # For when the task doesn't need to exist. If it doesn't it just returns None, which can be useful.
-    for task_dir in task_list:
-        if task_dir.id == task_id:
-            return task_dir
+    for task in task_list:
+        if task.id == task_id:
+            return task
     return None
 
 
 def get_task(
     task_list: list[Task], task_id: int
 ) -> Task:  # For when the task needs to exist. If it doesn't it causes an error.
-    task_dir = find_task(task_list, task_id)
-    if task_dir is None:
+    task = find_task(task_list, task_id)
+    if task is None:
         raise TaskNotFoundError(f"Task with id {task_id} was not found")
-    return task_dir
+    return task
 
 
 def complete_task(task_list: list[Task], task_id: int) -> bool:
