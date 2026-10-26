@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from dataclasses import dataclass
+from datetime import date, datetime
 
 
 @dataclass
@@ -8,6 +8,6 @@ class Task:
     name: str
     priority: int
     duration: int
+    created_at: datetime
     due_date: date | None = None
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     completed: bool = False
