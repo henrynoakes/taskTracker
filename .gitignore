@@ -1,5 +1,7 @@
 # Python bytecode and cache directories
 __pycache__/
+tasktracker/__pycache__/
+tests/__pycache__
 *.py[cod]
 *$py.class
 .pytest_cache/
