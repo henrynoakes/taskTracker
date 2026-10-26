@@ -1,3 +1,5 @@
+from datetime import date
+
 from .models import Task
 from .validation import (
     validate_due_date,
@@ -13,7 +15,13 @@ class TaskNotFoundError(LookupError):
     pass
 
 
-def add_task(task_list, name, priority, duration, due_date=None):
+def add_task(
+    task_list: list[Task],
+    name: str,
+    priority: int,
+    duration: int,
+    due_date: date | None = None,
+) -> None:
     # validation step
     validate_name(name)
     validate_priority(priority)
@@ -32,8 +40,8 @@ def add_task(task_list, name, priority, duration, due_date=None):
 
 
 def find_task(
-    task_list, task_id
-):  # For when the task doesn't need to exist. If it doesn't it just returns None, which can be useful.
+    task_list: list[Task], task_id: int
+) -> Task | None:  # For when the task doesn't need to exist. If it doesn't it just returns None, which can be useful.
     for task_dir in task_list:
         if task_dir.id == task_id:
             return task_dir
@@ -41,15 +49,15 @@ def find_task(
 
 
 def get_task(
-    task_list, task_id
-):  # For when the task needs to exist. If it doesn't it causes an error.
+    task_list: list[Task], task_id: int
+) -> Task:  # For when the task needs to exist. If it doesn't it causes an error.
     task_dir = find_task(task_list, task_id)
     if task_dir is None:
         raise TaskNotFoundError(f"Task with id {task_id} was not found")
     return task_dir
 
 
-def complete_task(task_list, task_id):
+def complete_task(task_list: list[Task], task_id: int) -> bool:
     task = find_task(task_list, task_id)
     if task is not None:
         task.completed = True
@@ -57,7 +65,7 @@ def complete_task(task_list, task_id):
     return False
 
 
-def delete_task(task_list, task_id):
+def delete_task(task_list: list[Task], task_id: int) -> bool:
     task = find_task(task_list, task_id)
     if task is not None:
         task_list.remove(task)
@@ -65,7 +73,9 @@ def delete_task(task_list, task_id):
     return False
 
 
-def edit_task(task_list, task_id, field, value):
+def edit_task(
+    task_list: list[Task], task_id: int, field: str, value: object
+) -> bool:
     # Validation step
     validate_fields(field)
     validators[field](value)

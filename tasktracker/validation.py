@@ -1,7 +1,8 @@
+from collections.abc import Callable
 from datetime import date
 
 
-def validate_name(name):
+def validate_name(name: object) -> None:
     if not isinstance(name, str):
         raise TypeError("Name must be a string")
 
@@ -9,12 +10,12 @@ def validate_name(name):
         raise ValueError("Name cannot be empty")
 
 
-def validate_completed(completed):
+def validate_completed(completed: object) -> None:
     if type(completed) is not bool:
         raise TypeError("Completed must be a boolean")
 
 
-def validate_duration(duration):
+def validate_duration(duration: object) -> None:
     if type(duration) is not int:
         raise TypeError("Duration must be an integer")
 
@@ -22,7 +23,7 @@ def validate_duration(duration):
         raise ValueError("Duration must be between 1 and 10 blocks")
 
 
-def validate_priority(priority):
+def validate_priority(priority: object) -> None:
     if type(priority) is not int:
         raise TypeError("Priority must be an integer")
 
@@ -30,7 +31,7 @@ def validate_priority(priority):
         raise ValueError("Priority must be between 1 and 5")
 
 
-def validate_due_date(due_date):
+def validate_due_date(due_date: object) -> None:
     if due_date is None:
         return
 
@@ -38,12 +39,12 @@ def validate_due_date(due_date):
         raise TypeError("Due date must be a date object or None")
 
 
-def validate_fields(field):
+def validate_fields(field: object) -> None:
     if field not in validators:
         raise ValueError(f"Unknown field: {field}")
 
 
-validators = {  # Dispatch table
+validators: dict[str, Callable[[object], None]] = {  # Dispatch table
     "name": validate_name,
     "completed": validate_completed,
     "duration": validate_duration,
