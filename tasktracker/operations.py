@@ -52,6 +52,14 @@ def get_task(  # Wrapper of db.find_task which raises an error if task not found
     return task
 
 
+def list_tasks(
+    database: sqlite3.Connection,
+    field: str | None = None,
+    value: object = None,
+) -> list[Task]:
+    return db.list_tasks(database, field, value)
+
+
 def complete_task(
     database: sqlite3.Connection, task_id: int
 ) -> bool:  # Wrapper of db.edit_task but only for making "completed" = True
@@ -67,10 +75,6 @@ def edit_task(  # Wrapper of db.edit_task
         value = value.isoformat()
 
     return db.edit_task(database, task_id, field, value)
-
-
-def list_tasks(database: sqlite3.Connection) -> list[Task]:
-    return db.list_tasks(database)
 
 
 def delete_task(  # Just a wrapper for delete_task_db

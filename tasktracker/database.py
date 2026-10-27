@@ -137,6 +137,17 @@ editable_columns = {
     "completed",
 }
 
+task_columns = {
+    "id",
+    "name",
+    "priority",
+    "duration",
+    "due_date",
+    "created_at",
+    "completed",
+    "scheduled_date",
+}
+
 
 def edit_task(
     database: sqlite3.Connection,
@@ -169,9 +180,33 @@ def find_task(database: sqlite3.Connection, task_id: int) -> Task | None:
     return row_to_task(row)
 
 
-def list_tasks(database: sqlite3.Connection) -> list[Task]:
-    rows = database.execute("SELECT * FROM tasks").fetchall()
-    return [row_to_task(row) for row in rows]  # A list of Task objects
+def list_tasks(
+    database: sqlite3.Connection,
+    field: str | None = None,
+    value: object = None,
+) -> list[Task]:
+
+    if field is None:
+        rows = database.execute("SELECT * FROM tasks").fetchall()
+
+    else:
+        if field not in task_columns:
+            raise ValueError(f"Invalid task field: {field}")
+
+        if value is None:
+            query = f"SELECT * FROM tasks WHERE {field} IS NULL"
+            rows = database.execute(query).fetchall()
+
+        else:
+            if isinstance(value, (date, datetime)):
+                value = value.isoformat()
+            elif isinstance(value, bool):
+                value = int(value)
+
+            query = f"SELECT * FROM tasks WHERE {field} = ?"
+            rows = database.execute(query, (value,)).fetchall()
+
+    return [row_to_task(row) for row in rows]
 
 
 def delete_task(
