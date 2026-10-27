@@ -6,6 +6,9 @@ tests/__pycache__
 *$py.class
 .pytest_cache/
 
+# Databases
+*.db
+
 # Virtual environments
 .venv/
 venv/
