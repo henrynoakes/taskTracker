@@ -64,6 +64,7 @@ def test_create_task(client: TestClient, due_date: str | None) -> None:
         "due_date": due_date,
         "created_at": task["created_at"],
         "completed": False,
+        "scheduled_date": None,
     }
     assert client.get(f"/tasks/{task['id']}").json() == task
 
@@ -73,6 +74,20 @@ def test_get_task(client: TestClient, task: dict) -> None:
 
     assert response.status_code == 200
     assert response.json() == task
+
+
+def test_create_and_clear_scheduled_date(client: TestClient) -> None:
+    response = client.post(
+        "/tasks", json={"name": "Scheduled", "priority": 2, "duration": 3,
+                        "scheduled_date": "2026-11-01"},
+    )
+    assert response.status_code == 201
+    task = response.json()
+    assert task["scheduled_date"] == "2026-11-01"
+    assert client.get(f"/tasks/{task['id']}").json() == task
+    response = client.patch(f"/tasks/{task['id']}", json={"scheduled_date": None})
+    assert response.status_code == 200
+    assert response.json() == task | {"scheduled_date": None}
 
 
 def test_list_tasks(client: TestClient, task: dict) -> None:
@@ -96,6 +111,8 @@ def test_list_tasks(client: TestClient, task: dict) -> None:
         {"duration": 10},
         {"due_date": "2026-12-01"},
         {"due_date": None},
+        {"scheduled_date": "2026-11-01"},
+        {"scheduled_date": None},
         {"completed": True},
         {"name": "Updated", "priority": 1, "duration": 1, "completed": True},
         {},
@@ -141,7 +158,7 @@ def test_reopen_completed_task(client: TestClient, task: dict) -> None:
                 ("name", ""), ("name", "   "), ("name", None), ("name", 123),
                 ("priority", 0), ("priority", 6), ("priority", None),
                 ("duration", 0), ("duration", 11), ("duration", 1.5),
-                ("due_date", "not-a-date"),
+                ("due_date", "not-a-date"), ("scheduled_date", "not-a-date"),
             ]
         ],
     ],
@@ -162,7 +179,8 @@ def test_invalid_create_leaves_tasks_unchanged(
         {"name": ""}, {"name": "   "}, {"name": None},
         {"priority": 0}, {"priority": 6}, {"priority": None},
         {"duration": 0}, {"duration": 11}, {"duration": None},
-        {"due_date": "not-a-date"}, {"completed": None},
+        {"due_date": "not-a-date"}, {"scheduled_date": "not-a-date"},
+        {"completed": None},
         {"completed": "not-a-boolean"},
         # Name is applied first; a later operation error must roll it back.
         {"name": "Temporary", "completed": None},

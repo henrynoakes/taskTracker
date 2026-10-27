@@ -12,6 +12,7 @@ from .models import Task
 # due_date
 # created_at
 # completed
+# scheduled_date
 
 
 def connect_database(path: str | Path) -> sqlite3.Connection:
@@ -30,7 +31,8 @@ def initialize_database(database: sqlite3.Connection) -> None:
             duration INTEGER NOT NULL CHECK (duration BETWEEN 1 AND 10),
             due_date TEXT,
             created_at TEXT NOT NULL,
-            completed INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0, 1))
+            completed INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0, 1)),
+            scheduled_date TEXT
         )
         """
     )
@@ -47,6 +49,9 @@ def row_to_task(row: sqlite3.Row) -> Task:
         else None,  # Allows for due date to be None
         created_at=datetime.fromisoformat(row["created_at"]),
         completed=bool(row["completed"]),
+        scheduled_date=date.fromisoformat(row["scheduled_date"])
+        if row["scheduled_date"] is not None
+        else None,  # Allows for scheduled_date to be None
     )
 
     return task
@@ -61,6 +66,9 @@ def task_to_params(task: Task) -> dict[str, object]:
         "due_date": task.due_date.isoformat() if task.due_date is not None else None,
         "created_at": task.created_at.isoformat(),
         "completed": int(task.completed),
+        "scheduled_date": task.scheduled_date.isoformat()
+        if task.scheduled_date is not None
+        else None,
     }
 
 
@@ -70,6 +78,7 @@ def insert_task(
     priority: int,
     duration: int,
     due_date: date | None = None,
+    scheduled_date: date | None = None,
 ) -> int:
     created_at = datetime.now(UTC)
     cursor = database.execute(
@@ -80,7 +89,8 @@ def insert_task(
             duration,
             due_date,
             created_at,
-            completed
+            completed,
+            scheduled_date
         )
         VALUES (
             :name,
@@ -88,7 +98,8 @@ def insert_task(
             :duration,
             :due_date,
             :created_at,
-            :completed
+            :completed,
+            :scheduled_date
         )
         """,
         {
@@ -98,6 +109,9 @@ def insert_task(
             "due_date": due_date.isoformat() if due_date is not None else None,
             "created_at": created_at.isoformat(),
             "completed": 0,
+            "scheduled_date": scheduled_date.isoformat()
+            if scheduled_date is not None
+            else None,
         },
     )
 
@@ -118,6 +132,7 @@ def update_task(database: sqlite3.Connection, task: Task) -> bool:
             priority = :priority,
             duration = :duration,
             due_date = :due_date,
+            scheduled_date = :scheduled_date,
             completed = :completed
         WHERE id = :id
         """,
@@ -130,6 +145,7 @@ def update_task(database: sqlite3.Connection, task: Task) -> bool:
 # Add a search_task() which will fuzzy search for task names
 
 editable_columns = {
+    "scheduled_date",
     "name",
     "priority",
     "duration",

@@ -15,10 +15,13 @@ def snapshot(connection: sqlite3.Connection) -> list[tuple]:
 
 
 @pytest.mark.parametrize("due_date", [None, date(2026, 12, 1)])
-def test_add_task(connection: sqlite3.Connection, due_date: date | None) -> None:
+@pytest.mark.parametrize("scheduled_date", [None, date(2026, 11, 1)])
+def test_add_task(
+    connection: sqlite3.Connection, due_date: date | None, scheduled_date: date | None,
+) -> None:
     before = datetime.now(UTC)
     with connection:
-        task_id = ops.add_task(connection, "Chemistry", 5, 10, due_date)
+        task_id = ops.add_task(connection, "Chemistry", 5, 10, due_date, scheduled_date)
     after = datetime.now(UTC)
     task = ops.get_task(connection, task_id)
 
@@ -27,6 +30,7 @@ def test_add_task(connection: sqlite3.Connection, due_date: date | None) -> None
     assert task.priority == 5
     assert task.duration == 10
     assert task.due_date == due_date
+    assert task.scheduled_date == scheduled_date
     assert task.completed is False
     assert task.created_at.tzinfo is UTC
     assert before <= task.created_at <= after
@@ -41,6 +45,8 @@ def test_add_task(connection: sqlite3.Connection, due_date: date | None) -> None
         ("duration", 11, ValueError), ("duration", 1.5, TypeError),
         ("due_date", "2026-11-10", TypeError),
         ("due_date", datetime(2026, 11, 10), TypeError),
+        ("scheduled_date", "2026-11-10", TypeError),
+        ("scheduled_date", datetime(2026, 11, 10), TypeError),
     ],
 )
 def test_invalid_add_leaves_database_unchanged(
@@ -92,7 +98,8 @@ def test_complete_task_changes_only_completed(
     "field, value",
     [("name", "日本語 ' ; DROP TABLE tasks; --"), ("priority", 5),
      ("duration", 10), ("due_date", date(2026, 12, 1)),
-     ("due_date", None), ("completed", True), ("completed", False)],
+     ("due_date", None), ("scheduled_date", date(2026, 11, 1)),
+     ("scheduled_date", None), ("completed", True), ("completed", False)],
 )
 def test_edit_changes_only_requested_field(
     connection: sqlite3.Connection, task_ids: tuple[int, int], field: str, value: object,
@@ -116,7 +123,8 @@ def test_edit_changes_only_requested_field(
     [("name", "", ValueError), ("name", None, TypeError),
      ("priority", 0, ValueError), ("priority", True, TypeError),
      ("duration", 11, ValueError), ("duration", "2", TypeError),
-     ("due_date", "2026-11-10", TypeError), ("completed", 1, TypeError),
+     ("due_date", "2026-11-10", TypeError),
+     ("scheduled_date", "2026-11-10", TypeError), ("completed", 1, TypeError),
      ("id", 10, ValueError), ("created_at", None, ValueError),
      ("unknown", "value", ValueError)],
 )

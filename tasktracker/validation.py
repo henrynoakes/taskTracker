@@ -41,6 +41,14 @@ def validate_due_date(due_date: object) -> None:
         raise TypeError("Due date must be a date object or None")
 
 
+def validate_scheduled_date(scheduled_date: object) -> None:
+    if scheduled_date is None:
+        return
+
+    if type(scheduled_date) is not date:
+        raise TypeError("Scheduled date must be a date object or None")
+
+
 def validate_fields(field: object) -> None:
     if field not in validators:
         raise ValueError(f"Unknown field: {field}")
@@ -54,4 +62,5 @@ validators: dict[
     "duration": validate_duration,
     "priority": validate_priority,
     "due_date": validate_due_date,
+    "scheduled_date": validate_scheduled_date,
 }

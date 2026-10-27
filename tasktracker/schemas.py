@@ -7,6 +7,7 @@ class TaskCreate(BaseModel):
     priority: int = Field(ge=1, le=5)
     duration: int = Field(ge=1, le=10)
     due_date: date | None = None
+    scheduled_date: date | None = None
 
 
 class TaskUpdate(BaseModel):
@@ -14,6 +15,7 @@ class TaskUpdate(BaseModel):
     priority: int | None = Field(default=None, ge=1, le=5)
     duration: int | None = Field(default=None, ge=1, le=10)
     due_date: date | None = None
+    scheduled_date: date | None = None
     completed: bool | None = None
 
 

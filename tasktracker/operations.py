@@ -7,6 +7,7 @@ from .validation import (
     validate_fields,
     validate_name,
     validate_priority,
+    validate_scheduled_date,
     validators,
 )
 from . import database as db
@@ -18,11 +19,13 @@ def add_task(  # A wrapper for insert_task
     priority: int,
     duration: int,
     due_date: date | None = None,
+    scheduled_date: date | None = None,
 ) -> int:
     validate_name(name)
     validate_priority(priority)
     validate_duration(duration)
     validate_due_date(due_date)
+    validate_scheduled_date(scheduled_date)
 
     return db.insert_task(
         connection,
@@ -30,6 +33,7 @@ def add_task(  # A wrapper for insert_task
         priority,
         duration,
         due_date,
+        scheduled_date,
     )
 
 
@@ -71,7 +75,7 @@ def edit_task(  # Wrapper of db.edit_task
 ) -> bool:
     validate_fields(field)
     validators[field](value)
-    if field == "due_date" and type(value) is date and value is not None:
+    if field in {"due_date", "scheduled_date"} and type(value) is date:
         value = value.isoformat()
 
     return db.edit_task(database, task_id, field, value)

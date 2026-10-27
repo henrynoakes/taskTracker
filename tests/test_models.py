@@ -15,6 +15,7 @@ def test_task_defaults() -> None:
     assert task.duration == 3
     assert task.created_at == created_at
     assert task.due_date is None
+    assert task.scheduled_date is None
     assert task.completed is False
 
 

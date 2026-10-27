@@ -10,6 +10,7 @@ from tasktracker.validation import (
     validate_fields,
     validate_name,
     validate_priority,
+    validate_scheduled_date,
 )
 
 
@@ -93,7 +94,18 @@ def test_due_date_requires_date_or_none(due_date: object) -> None:
         validate_due_date(due_date)
 
 
-@pytest.mark.parametrize("field", ["name", "completed", "duration", "priority", "due_date"])
+@pytest.mark.parametrize("scheduled_date", [None, date(2026, 11, 1)])
+def test_valid_scheduled_date(scheduled_date: date | None) -> None:
+    assert validate_scheduled_date(scheduled_date) is None
+
+
+@pytest.mark.parametrize("value", ["2026-11-01", datetime(2026, 11, 1), 1, True, []])
+def test_scheduled_date_requires_date_or_none(value: object) -> None:
+    with pytest.raises(TypeError, match="Scheduled date must be a date object or None"):
+        validate_scheduled_date(value)
+
+
+@pytest.mark.parametrize("field", ["name", "completed", "duration", "priority", "due_date", "scheduled_date"])
 def test_editable_fields(field: str) -> None:
     assert validate_fields(field) is None
 

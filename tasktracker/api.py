@@ -83,6 +83,7 @@ def create_task(
                 task.priority,
                 task.duration,
                 task.due_date,
+                task.scheduled_date,
             )
 
     except (ValueError, TypeError) as error:

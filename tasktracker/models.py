@@ -11,3 +11,4 @@ class Task:
     created_at: datetime
     due_date: date | None = None
     completed: bool = False
+    scheduled_date: date | None = None

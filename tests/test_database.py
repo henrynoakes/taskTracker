@@ -33,6 +33,51 @@ def test_initialize_database_is_idempotent(connection: sqlite3.Connection) -> No
     assert connection.execute("SELECT COUNT(*) FROM tasks").fetchone()[0] == 1
 
 
+def test_initialize_database_migrates_existing_tasks() -> None:
+    connection = db.connect_database(":memory:")
+    try:
+        with connection:
+            connection.execute(
+                "CREATE TABLE tasks (id INTEGER PRIMARY KEY, name TEXT, priority INTEGER, "
+                "duration INTEGER, due_date TEXT, created_at TEXT, completed INTEGER)"
+            )
+            connection.execute(
+                "INSERT INTO tasks VALUES "
+                "(1, 'Existing', 2, 3, '2026-11-10', '2026-10-01T12:00:00+00:00', 0)"
+            )
+            db.initialize_database(connection)
+            db.initialize_database(connection)
+        task = db.find_task(connection, 1)
+        assert task.name == "Existing"
+        assert task.due_date == date(2026, 11, 10)
+        assert task.scheduled_date is None
+        with connection:
+            db.update_task(connection, replace(task, scheduled_date=date(2026, 11, 1)))
+        assert db.find_task(connection, 1).scheduled_date == date(2026, 11, 1)
+    finally:
+        connection.close()
+
+
+@pytest.mark.parametrize("scheduled_date", [None, date(2026, 11, 1)])
+def test_scheduled_date_storage_and_filtering(
+    connection: sqlite3.Connection, scheduled_date: date | None,
+) -> None:
+    with connection:
+        task_id = db.insert_task(connection, "Scheduled", 2, 3, scheduled_date=scheduled_date)
+    task = db.find_task(connection, task_id)
+    assert task.scheduled_date == scheduled_date
+    assert connection.execute(
+        "SELECT scheduled_date FROM tasks WHERE id = ?", (task_id,),
+    ).fetchone()[0] == (scheduled_date.isoformat() if scheduled_date else None)
+    assert db.list_tasks(connection, "scheduled_date", scheduled_date) == [task]
+    for value in (date(2026, 12, 1), None):
+        task = replace(task, scheduled_date=value)
+        with connection:
+            assert db.update_task(connection, task) is True
+        assert db.find_task(connection, task_id) == task
+        assert db.task_to_params(task)["scheduled_date"] == (value.isoformat() if value else None)
+
+
 @pytest.mark.parametrize("due_date", [None, date(2026, 11, 10)])
 @pytest.mark.parametrize("completed", [False, True])
 def test_row_to_task(due_date: date | None, completed: bool) -> None:
@@ -41,7 +86,7 @@ def test_row_to_task(due_date: date | None, completed: bool) -> None:
     try:
         row = connection.execute(
             "SELECT 7 AS id, 'Physics' AS name, 2 AS priority, 4 AS duration, "
-            "? AS due_date, ? AS created_at, ? AS completed",
+            "? AS due_date, ? AS created_at, ? AS completed, NULL AS scheduled_date",
             (due_date.isoformat() if due_date else None, created_at.isoformat(), int(completed)),
         ).fetchone()
         assert db.row_to_task(row) == Task(
@@ -62,7 +107,7 @@ def test_row_to_task_rejects_invalid_dates(
 ) -> None:
     row = connection.execute(
         "SELECT 1 AS id, 'Task' AS name, 1 AS priority, 1 AS duration, "
-        "? AS due_date, ? AS created_at, 0 AS completed", (due_date, created_at),
+        "? AS due_date, ? AS created_at, 0 AS completed, NULL AS scheduled_date", (due_date, created_at),
     ).fetchone()
     with pytest.raises(ValueError):
         db.row_to_task(row)
@@ -82,6 +127,7 @@ def test_task_to_params(due_date: date | None, completed: bool) -> None:
         "created_at": "2026-10-01T12:00:00+00:00",
         "due_date": "2026-11-10" if due_date else None,
         "completed": 1 if completed else 0,
+        "scheduled_date": None,
     }
     assert type(params["completed"]) is int
 
