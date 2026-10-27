@@ -17,3 +17,6 @@ env/
 !.env.example
 .vscode/
 .idea/
+.codex/
+.aws/
+.agents/

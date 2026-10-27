@@ -27,7 +27,9 @@ def validate_priority(priority: object) -> None:
     if type(priority) is not int:
         raise TypeError("Priority must be an integer")
 
-    if priority < 1 or priority > 5:
+    if (
+        priority < 1 or priority > 5
+    ):  # Possibly make this defined in config so that it is the same as pydantic
         raise ValueError("Priority must be between 1 and 5")
 
 

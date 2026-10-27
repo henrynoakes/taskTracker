@@ -37,38 +37,40 @@ class TaskNotFoundError(LookupError):
     pass
 
 
-def get_task(  # Wrapper of find_task which raises an error if task not found
+def find_task(
     database: sqlite3.Connection, task_id: int
-) -> Task:  # For when the task needs to exist. If it doesn't it causes an error.
+) -> Task | None:  # Wrapper of db.find_task which allows for task to not exist
+    return db.find_task(database, task_id)
+
+
+def get_task(  # Wrapper of db.find_task which raises an error if task not found
+    database: sqlite3.Connection, task_id: int
+) -> Task:
     task = db.find_task(database, task_id)
     if task is None:
         raise TaskNotFoundError(f"Task with id {task_id} was not found")
     return task
 
 
-def complete_task(database: sqlite3.Connection, task_id: int) -> bool:
-    task = db.find_task(database, task_id)
-
-    if task is None:
-        return False
-
-    task.completed = True
-    return db.update_task(database, task)
+def complete_task(
+    database: sqlite3.Connection, task_id: int
+) -> bool:  # Wrapper of db.edit_task but only for making "completed" = True
+    return db.edit_task(database, task_id, "completed", True)
 
 
-def edit_task(
+def edit_task(  # Wrapper of db.edit_task
     database: sqlite3.Connection, task_id: int, field: str, value: object
 ) -> bool:
     validate_fields(field)
     validators[field](value)
+    if field == "due_date" and type(value) is date and value is not None:
+        value = value.isoformat()
 
-    task = db.find_task(database, task_id)
+    return db.edit_task(database, task_id, field, value)
 
-    if task is None:
-        return False
 
-    setattr(task, field, value)
-    return db.update_task(database, task)
+def list_tasks(database: sqlite3.Connection) -> list[Task]:
+    return db.list_tasks(database)
 
 
 def delete_task(  # Just a wrapper for delete_task_db

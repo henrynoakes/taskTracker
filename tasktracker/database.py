@@ -1,3 +1,4 @@
+from pathlib import Path
 import sqlite3
 from datetime import UTC, date, datetime
 from .models import Task
@@ -13,7 +14,7 @@ from .models import Task
 # completed
 
 
-def connect_database(path: str) -> sqlite3.Connection:
+def connect_database(path: str | Path) -> sqlite3.Connection:
     database = sqlite3.connect(path)
     database.row_factory = sqlite3.Row
     return database
@@ -126,6 +127,37 @@ def update_task(database: sqlite3.Connection, task: Task) -> bool:
     return cursor.rowcount > 0
 
 
+# Add a search_task() which will fuzzy search for task names
+
+editable_columns = {
+    "name",
+    "priority",
+    "duration",
+    "due_date",
+    "completed",
+}
+
+
+def edit_task(
+    database: sqlite3.Connection,
+    task_id: int,
+    field: str,
+    value: object,
+) -> bool:
+    if field not in editable_columns:
+        raise ValueError(f"Invalid database column: {field}")
+
+    cursor = database.execute(
+        f"UPDATE tasks SET {field} = :value WHERE id = :id",
+        {
+            "value": value,
+            "id": task_id,
+        },
+    )
+
+    return cursor.rowcount > 0
+
+
 def find_task(database: sqlite3.Connection, task_id: int) -> Task | None:
     cursor = database.execute(
         "SELECT * FROM tasks WHERE id = ?",
@@ -135,6 +167,11 @@ def find_task(database: sqlite3.Connection, task_id: int) -> Task | None:
     if row is None:
         return None
     return row_to_task(row)
+
+
+def list_tasks(database: sqlite3.Connection) -> list[Task]:
+    rows = database.execute("SELECT * FROM tasks").fetchall()
+    return [row_to_task(row) for row in rows]  # A list of Task objects
 
 
 def delete_task(
