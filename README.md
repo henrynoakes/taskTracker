@@ -1,8 +1,25 @@
 # Task tracker and scheduler
 
-## How to handle scheduling
-There should be an adapted priority, while from 1 - 5 is the default, a task close to it's deadline should increase it (even more if it's overdue) (maybe with some kind of inversely proportional function that increases exponentially as the time delta decreases including into negatives), along with a task which has existed for a long time.
+## Current scheduler implementation
 
+Currently the scheduler is very naive, I call it priority-ordered first-fit bin packing. It follows this sequence:
+
+1. Gather all uncompleted tasks
+2. Calculate for each task an importance, which is a function of days to deadline (or from), priority, age.
+3. Order tasks in order of decreasing importance.
+4. Attempt to fit the first task into the first day, if it doesn't fit move onto the next until you reach a task that fits.
+5. When a task is added to the day remove it from the list.
+6. Start again at the top of the list (with any scheduled tasks removed), try and find a task that fits into the remainder of the duration of the day.
+7. If a task was added repeat step (6) again. If no task was added (in other words no task was found that fits into the remainder of the first day) move onto the next day and repeat step (4) continuous.
+
+## Improvements
+
+Eventually I should change to a cost-minimisation algorithm. Where each task placement has a cost, then the algorithm tries to find a combination of legal task placements which gets the total sum of cost to be as low as possible.
+This would give us much more control on what the final schedule should look like. For example we could add a cost to there being too many tasks on one day. Calculating cost is quite easy, the problem is trying to find the combination of placements with the lowest cost. We could do a brute force search of every possible combination, but this might be quite costly. It could be improved by removing illegal placements. If we were to do a search like this we should probably do it over a series of days such that one of the combinations could be one task on each day.
+
+## How to handle scheduling
+
+There should be an adapted priority, while from 1 - 5 is the default, a task close to it's deadline should increase it (even more if it's overdue) (maybe with some kind of inversely proportional function that increases exponentially as the time delta decreases including into negatives), along with a task which has existed for a long time.
 
 ```
 python -m venv .venv
@@ -15,7 +32,9 @@ source .venv/bin/activate.fish
 ```
 pip install "fastapi[standard]"
 ```
+
 The standard installation includes Uvicorn, the ASGI server that will run your application.
+
 ```
 pip install pytest httpx
 ```
