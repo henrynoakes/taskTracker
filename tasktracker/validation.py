@@ -58,7 +58,6 @@ validators: dict[
     str, Callable[[object], None]
 ] = {  # Dispatch table to be called when editing a task, makes it easier to select which validation function should be used, as opposed to a series of if statements
     "name": validate_name,
-    "completed": validate_completed,
     "duration": validate_duration,
     "priority": validate_priority,
     "due_date": validate_due_date,

@@ -1,19 +1,9 @@
-from collections.abc import Iterator
 from datetime import UTC, datetime
-from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
-from tasktracker import api
-
-
-@pytest.fixture
-def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
-    # Both startup and request handlers use this database, with separate connections.
-    monkeypatch.setattr(api, "database_path", tmp_path / "tasks.db")
-    with TestClient(api.app) as client:
-        yield client
+from tasktracker import operations as ops
 
 
 @pytest.fixture
@@ -76,18 +66,18 @@ def test_get_task(client: TestClient, task: dict) -> None:
     assert response.json() == task
 
 
-def test_create_and_clear_scheduled_date(client: TestClient) -> None:
+def test_scheduled_date_edits_are_recalculated(client: TestClient) -> None:
     response = client.post(
         "/tasks", json={"name": "Scheduled", "priority": 2, "duration": 3,
                         "scheduled_date": "2026-11-01"},
     )
     assert response.status_code == 201
     task = response.json()
-    assert task["scheduled_date"] == "2026-11-01"
+    assert task["scheduled_date"] == datetime.now(ops.UK_TIMEZONE).date().isoformat()
     assert client.get(f"/tasks/{task['id']}").json() == task
     response = client.patch(f"/tasks/{task['id']}", json={"scheduled_date": None})
     assert response.status_code == 200
-    assert response.json() == task | {"scheduled_date": None}
+    assert response.json() == task
 
 
 def test_list_tasks(client: TestClient, task: dict) -> None:
@@ -113,8 +103,7 @@ def test_list_tasks(client: TestClient, task: dict) -> None:
         {"due_date": None},
         {"scheduled_date": "2026-11-01"},
         {"scheduled_date": None},
-        {"completed": True},
-        {"name": "Updated", "priority": 1, "duration": 1, "completed": True},
+        {"name": "Updated", "priority": 1, "duration": 1},
         {},
     ],
 )
@@ -127,22 +116,21 @@ def test_update_task(client: TestClient, task: dict, changes: dict) -> None:
 
     assert response.status_code == 200
     expected = task | changes
+    expected["scheduled_date"] = response.json()["scheduled_date"]
     assert response.json() == expected
     assert client.get(f"/tasks/{task['id']}").json() == expected
-    assert client.get(f"/tasks/{other['id']}").json() == other
+    current_other = client.get(f"/tasks/{other['id']}").json()
+    assert current_other == other | {"scheduled_date": current_other["scheduled_date"]}
 
 
-def test_reopen_completed_task(client: TestClient, task: dict) -> None:
+@pytest.mark.parametrize("completed", [True, False, None])
+def test_patch_completion_is_rejected(client: TestClient, task: dict, completed) -> None:
     url = f"/tasks/{task['id']}"
-    response = client.patch(url, json={"completed": True})
-    assert response.status_code == 200
-    assert response.json()["completed"] is True
-
-    response = client.patch(url, json={"completed": False})
-
-    assert response.status_code == 200
-    assert response.json() == task
-    assert client.get(url).json() == task
+    assert client.post(f"{url}/complete").status_code == 200
+    before = client.get(url).json()
+    response = client.patch(url, json={"completed": completed})
+    assert response.status_code == 422
+    assert client.get(url).json() == before
 
 
 @pytest.mark.parametrize(
@@ -183,7 +171,7 @@ def test_invalid_create_leaves_tasks_unchanged(
         {"completed": None},
         {"completed": "not-a-boolean"},
         # Name is applied first; a later operation error must roll it back.
-        {"name": "Temporary", "completed": None},
+        {"name": "Temporary", "duration": None},
     ],
 )
 def test_invalid_update_leaves_task_unchanged(
@@ -207,6 +195,7 @@ def test_delete_task(client: TestClient, task: dict) -> None:
     assert response.status_code == 204
     assert response.content == b""
     assert client.get(url).status_code == 404
+    other = client.get(f"/tasks/{other['id']}").json()
     assert client.get("/tasks").json() == [other]
     assert client.delete(url).status_code == 404
 

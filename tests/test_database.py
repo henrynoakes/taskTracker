@@ -1,7 +1,7 @@
+import sqlite3
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
-import sqlite3
 
 import pytest
 
@@ -186,7 +186,7 @@ def test_update_task_preserves_id_creation_time_and_other_rows(
     other = db.find_task(connection, first)
     updated = replace(
         original, name="Updated", priority=5, duration=10,
-        due_date=due_date, completed=True,
+        due_date=due_date,
     )
     # created_at is immutable in storage even if the caller changes its snapshot.
     supplied = replace(updated, created_at=datetime(2000, 1, 1, tzinfo=UTC))
@@ -264,7 +264,7 @@ def test_changes_persist_after_reconnecting(tmp_path: Path, operation: str) -> N
         expected = db.find_task(connection, task_id)
         with connection:
             if operation == "update":
-                expected = replace(expected, name="Saved change", completed=True, due_date=None)
+                expected = replace(expected, name="Saved change", due_date=None)
                 assert db.update_task(connection, expected) is True
             elif operation == "delete":
                 assert db.delete_task(connection, task_id) is True

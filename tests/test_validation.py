@@ -105,12 +105,12 @@ def test_scheduled_date_requires_date_or_none(value: object) -> None:
         validate_scheduled_date(value)
 
 
-@pytest.mark.parametrize("field", ["name", "completed", "duration", "priority", "due_date", "scheduled_date"])
+@pytest.mark.parametrize("field", ["name", "duration", "priority", "due_date", "scheduled_date"])
 def test_editable_fields(field: str) -> None:
     assert validate_fields(field) is None
 
 
-@pytest.mark.parametrize("field", ["id", "created_at", "unknown", "", None])
+@pytest.mark.parametrize("field", ["id", "created_at", "completed", "unknown", "", None])
 def test_unknown_field(field: object) -> None:
     with pytest.raises(ValueError, match="Unknown field:"):
         validate_fields(field)

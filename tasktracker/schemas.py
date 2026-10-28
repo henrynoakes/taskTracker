@@ -1,5 +1,6 @@
 from datetime import date
-from pydantic import BaseModel, Field
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TaskCreate(BaseModel):
@@ -11,12 +12,13 @@ class TaskCreate(BaseModel):
 
 
 class TaskUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str | None = None
     priority: int | None = Field(default=None, ge=1, le=5)
     duration: int | None = Field(default=None, ge=1, le=10)
     due_date: date | None = None
     scheduled_date: date | None = None
-    completed: bool | None = None
 
 
 # Each field has a None value which allows for partial updates omitting some fields

@@ -1,6 +1,9 @@
 import sqlite3
-from datetime import date
-from .models import Task
+from datetime import UTC, date, datetime
+from zoneinfo import ZoneInfo
+
+from . import database as db
+from .models import Task, WorkLogEntry
 from .validation import (
     validate_due_date,
     validate_duration,
@@ -10,7 +13,8 @@ from .validation import (
     validate_scheduled_date,
     validators,
 )
-from . import database as db
+
+UK_TIMEZONE = ZoneInfo("Europe/London")
 
 
 def add_task(  # A wrapper for insert_task
@@ -66,8 +70,20 @@ def list_tasks(
 
 def complete_task(
     database: sqlite3.Connection, task_id: int
-) -> bool:  # Wrapper of db.edit_task but only for making "completed" = True
-    return db.edit_task(database, task_id, "completed", True)
+) -> bool:
+    """Complete and log once; the caller must manage the transaction."""
+    # Updating first acquires SQLite's write lock before reading the snapshot.
+    # Concurrent completion requests cannot both perform this transition.
+    changed = db.mark_task_completed(database, task_id)
+    task = db.find_task(database, task_id)
+    if task is None:
+        return False
+    if changed:
+        now = datetime.now(UK_TIMEZONE)
+        db.insert_work_log(
+            database, task.id, task.name, now.date(), now.astimezone(UTC), task.duration,
+        )
+    return True
 
 
 def edit_task(  # Wrapper of db.edit_task
@@ -86,3 +102,17 @@ def delete_task(  # Just a wrapper for delete_task_db
     task_id: int,
 ) -> bool:
     return db.delete_task(database, task_id)
+
+
+def list_work_log(
+    database: sqlite3.Connection, work_date: date | None = None,
+) -> list[WorkLogEntry]:
+    return db.list_work_log(database, work_date)
+
+
+def get_work_duration(database: sqlite3.Connection, work_date: date) -> int:
+    return db.get_work_duration(database, work_date)
+
+
+def get_work_log_summary(database: sqlite3.Connection) -> list[dict[str, str | int]]:
+    return db.get_work_log_summary(database)

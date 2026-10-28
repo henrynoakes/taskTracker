@@ -1,14 +1,16 @@
-from pathlib import Path
 import sqlite3
-from datetime import date, datetime
-from fastapi import FastAPI, HTTPException, Depends
 from collections.abc import Generator
 from contextlib import asynccontextmanager
+from datetime import date, datetime
+from pathlib import Path
 from typing import Annotated
-from .schemas import TaskCreate, TaskUpdate
+
+from fastapi import Depends, FastAPI, HTTPException
+
 from . import database as db
 from . import operations as ops
 from . import scheduler
+from .schemas import TaskCreate, TaskUpdate
 
 database_path = Path(__file__).resolve().parent.parent / "tasks.db"
 
@@ -94,8 +96,6 @@ def list_tasks(
     field: str | None = None,
     value: str | None = None,
 ):
-    if field not in db.task_columns:
-        raise ValueError(f"Unknown task field: {field}")
     if field is None:
         if value is not None:
             raise HTTPException(
@@ -112,6 +112,8 @@ def list_tasks(
         )
 
     try:
+        if field not in db.task_columns:
+            raise ValueError(f"Unknown task field: {field}")
         parsed_value = parse_filter_value(field, value)
         return ops.list_tasks(connection, field, parsed_value)
 
@@ -137,6 +139,7 @@ def create_task(
                 task.due_date,
                 task.scheduled_date,
             )
+            scheduler.schedule_tasks(connection)
 
     except (ValueError, TypeError) as error:
         raise HTTPException(
@@ -162,6 +165,7 @@ def update_task(
             with connection:
                 for field, value in changes.items():
                     ops.edit_task(connection, task_id, field, value)
+                scheduler.schedule_tasks(connection)
 
         except (ValueError, TypeError) as error:
             raise HTTPException(
@@ -202,6 +206,8 @@ def delete_task(
 ):
     with connection:
         deleted = ops.delete_task(connection, task_id)
+        if deleted:
+            scheduler.schedule_tasks(connection)
 
     if not deleted:
         raise HTTPException(
@@ -212,8 +218,19 @@ def delete_task(
 
 @app.post("/schedule")
 def schedule_tasks(connection: database_connection):
-    all_scheduled = scheduler.schedule_tasks(connection)
+    with connection:
+        all_scheduled = scheduler.schedule_tasks(connection)
 
     return {
         "all_scheduled": all_scheduled,
     }
+
+
+@app.get("/work-log/summary")
+def work_log_summary(connection: database_connection):
+    return ops.get_work_log_summary(connection)
+
+
+@app.get("/work-log")
+def list_work_log(connection: database_connection, work_date: date | None = None):
+    return ops.list_work_log(connection, work_date)

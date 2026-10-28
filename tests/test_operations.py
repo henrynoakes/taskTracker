@@ -1,6 +1,6 @@
+import sqlite3
 from collections.abc import Callable
 from datetime import UTC, date, datetime
-import sqlite3
 from typing import Any
 
 import pytest
@@ -99,15 +99,12 @@ def test_complete_task_changes_only_completed(
     [("name", "日本語 ' ; DROP TABLE tasks; --"), ("priority", 5),
      ("duration", 10), ("due_date", date(2026, 12, 1)),
      ("due_date", None), ("scheduled_date", date(2026, 11, 1)),
-     ("scheduled_date", None), ("completed", True), ("completed", False)],
+     ("scheduled_date", None)],
 )
 def test_edit_changes_only_requested_field(
     connection: sqlite3.Connection, task_ids: tuple[int, int], field: str, value: object,
 ) -> None:
     first, second = task_ids
-    if field == "completed" and value is False:
-        with connection:
-            ops.complete_task(connection, second)
     expected = ops.get_task(connection, second)
     other = ops.get_task(connection, first)
     setattr(expected, field, value)
@@ -124,7 +121,8 @@ def test_edit_changes_only_requested_field(
      ("priority", 0, ValueError), ("priority", True, TypeError),
      ("duration", 11, ValueError), ("duration", "2", TypeError),
      ("due_date", "2026-11-10", TypeError),
-     ("scheduled_date", "2026-11-10", TypeError), ("completed", 1, TypeError),
+     ("scheduled_date", "2026-11-10", TypeError), ("completed", 1, ValueError),
+     ("completed", True, ValueError), ("completed", False, ValueError),
      ("id", 10, ValueError), ("created_at", None, ValueError),
      ("unknown", "value", ValueError)],
 )

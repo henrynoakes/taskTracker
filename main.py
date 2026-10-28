@@ -7,7 +7,8 @@ def main() -> None:
 
     db.initialize_database(connection)
 
-    result = scheduler.schedule_tasks(connection)
+    with connection:
+        result = scheduler.schedule_tasks(connection)
 
     print("All tasks scheduled:", result)
 

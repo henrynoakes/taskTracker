@@ -1,8 +1,8 @@
-from pathlib import Path
 import sqlite3
 from datetime import UTC, date, datetime
-from .models import Task
+from pathlib import Path
 
+from .models import Task, WorkLogEntry
 
 # The row format:
 # id
@@ -18,6 +18,7 @@ from .models import Task
 def connect_database(path: str | Path) -> sqlite3.Connection:
     database = sqlite3.connect(path)
     database.row_factory = sqlite3.Row
+    database.execute("PRAGMA foreign_keys = ON")
     return database
 
 
@@ -33,6 +34,25 @@ def initialize_database(database: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL,
             completed INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0, 1)),
             scheduled_date TEXT
+        )
+        """
+    )
+
+    # Upgrade databases created before scheduled_date was introduced.
+    columns = {row["name"] for row in database.execute("PRAGMA table_info(tasks)")}
+    if "scheduled_date" not in columns:
+        database.execute("ALTER TABLE tasks ADD COLUMN scheduled_date TEXT")
+
+    database.execute(
+        """
+        CREATE TABLE IF NOT EXISTS work_log (
+            id INTEGER PRIMARY KEY,
+            task_id INTEGER,
+            task_name TEXT NOT NULL,
+            work_date TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            duration INTEGER NOT NULL CHECK (duration > 0),
+            FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL
         )
         """
     )
@@ -124,6 +144,7 @@ def insert_task(
 
 
 def update_task(database: sqlite3.Connection, task: Task) -> bool:
+    """Update editable fields while preserving creation time and completion status."""
     cursor = database.execute(
         """
         UPDATE tasks
@@ -132,8 +153,7 @@ def update_task(database: sqlite3.Connection, task: Task) -> bool:
             priority = :priority,
             duration = :duration,
             due_date = :due_date,
-            scheduled_date = :scheduled_date,
-            completed = :completed
+            scheduled_date = :scheduled_date
         WHERE id = :id
         """,
         task_to_params(task),
@@ -150,7 +170,6 @@ editable_columns = {
     "priority",
     "duration",
     "due_date",
-    "completed",
 }
 
 task_columns = {
@@ -235,3 +254,78 @@ def delete_task(
     )
 
     return cursor.rowcount > 0  # Returns true if the nuber of deleted rows is > 0
+
+
+def mark_task_completed(database: sqlite3.Connection, task_id: int) -> bool:
+    """Return whether this transaction changed an incomplete task to completed."""
+    cursor = database.execute(
+        "UPDATE tasks SET completed = 1 WHERE id = ? AND completed = 0",
+        (task_id,),
+    )
+    return cursor.rowcount > 0
+
+
+def row_to_work_log_entry(row: sqlite3.Row) -> WorkLogEntry:
+    return WorkLogEntry(
+        id=row["id"],
+        task_id=row["task_id"],
+        task_name=row["task_name"],
+        work_date=date.fromisoformat(row["work_date"]),
+        recorded_at=datetime.fromisoformat(row["recorded_at"]),
+        duration=row["duration"],
+    )
+
+
+def insert_work_log(
+    database: sqlite3.Connection,
+    task_id: int | None,
+    task_name: str,
+    work_date: date,
+    recorded_at: datetime,
+    duration: int,
+) -> int:
+    if recorded_at.utcoffset() is None:
+        raise ValueError("Recording timestamp must be timezone-aware")
+    cursor = database.execute(
+        """
+        INSERT INTO work_log (task_id, task_name, work_date, recorded_at, duration)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (task_id, task_name, work_date.isoformat(),
+         recorded_at.astimezone(UTC).isoformat(), duration),
+    )
+    entry_id = cursor.lastrowid
+    if entry_id is None:
+        raise RuntimeError("SQLite did not generate a work-log ID")
+    return entry_id
+
+
+def list_work_log(
+    database: sqlite3.Connection, work_date: date | None = None,
+) -> list[WorkLogEntry]:
+    if work_date is None:
+        rows = database.execute(
+            "SELECT * FROM work_log ORDER BY recorded_at, id"
+        ).fetchall()
+    else:
+        rows = database.execute(
+            "SELECT * FROM work_log WHERE work_date = ? ORDER BY recorded_at, id",
+            (work_date.isoformat(),),
+        ).fetchall()
+    return [row_to_work_log_entry(row) for row in rows]
+
+
+def get_work_duration(database: sqlite3.Connection, work_date: date) -> int:
+    row = database.execute(
+        "SELECT COALESCE(SUM(duration), 0) FROM work_log WHERE work_date = ?",
+        (work_date.isoformat(),),
+    ).fetchone()
+    return int(row[0])
+
+
+def get_work_log_summary(database: sqlite3.Connection) -> list[dict[str, str | int]]:
+    rows = database.execute(
+        "SELECT work_date, SUM(duration) AS duration FROM work_log "
+        "GROUP BY work_date ORDER BY work_date"
+    ).fetchall()
+    return [{"date": row["work_date"], "duration": row["duration"]} for row in rows]
