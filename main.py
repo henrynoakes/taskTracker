@@ -1,17 +1,20 @@
-from datetime import date
-
-from tasktracker.models import Task
-from tasktracker.operations import (
-    add_task,
-    complete_task,
-    delete_task,
-    edit_task,
-    get_task,
-)
+from tasktracker import database as db
+from tasktracker import scheduler
 
 
 def main() -> None:
-    pass
+    connection = db.connect_database("tasks.db")
+
+    db.initialize_database(connection)
+
+    result = scheduler.schedule_tasks(connection)
+
+    print("All tasks scheduled:", result)
+
+    for task in db.list_tasks(connection):
+        print(task.id, task.name, task.scheduled_date)
+
+    connection.close()
 
 
 if __name__ == "__main__":
