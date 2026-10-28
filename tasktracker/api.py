@@ -95,27 +95,37 @@ def list_tasks(
     connection: database_connection,
     field: str | None = None,
     value: str | None = None,
+    sort_by: str | None = None,
+    descending: bool = False,
 ):
-    if field is None:
-        if value is not None:
-            raise HTTPException(
-                status_code=422,
-                detail="A field must be specified when filtering by value",
-            )
+    if field is None and value is not None:
+        raise HTTPException(
+            status_code=422,
+            detail="A field must be specified when filtering by value",
+        )
 
-        return ops.list_tasks(connection)
-
-    if value is None:
+    if field is not None and value is None:
         raise HTTPException(
             status_code=422,
             detail="A value must be specified when filtering",
         )
 
     try:
-        if field not in db.task_columns:
-            raise ValueError(f"Unknown task field: {field}")
-        parsed_value = parse_filter_value(field, value)
-        return ops.list_tasks(connection, field, parsed_value)
+        parsed_value = None
+
+        if field is not None and value is not None:
+            if field not in db.task_columns:
+                raise ValueError(f"Unknown task field: {field}")
+
+            parsed_value = parse_filter_value(field, value)
+
+        return ops.list_tasks(
+            connection,
+            field,
+            parsed_value,
+            sort_by,
+            descending,
+        )
 
     except (ValueError, TypeError) as error:
         raise HTTPException(

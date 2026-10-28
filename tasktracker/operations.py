@@ -64,13 +64,19 @@ def list_tasks(
     database: sqlite3.Connection,
     field: str | None = None,
     value: object = None,
+    sort_by: str | None = None,
+    descending: bool = False,
 ) -> list[Task]:
-    return db.list_tasks(database, field, value)
+    return db.list_tasks(
+        database,
+        field,
+        value,
+        sort_by,
+        descending,
+    )
 
 
-def complete_task(
-    database: sqlite3.Connection, task_id: int
-) -> bool:
+def complete_task(database: sqlite3.Connection, task_id: int) -> bool:
     """Complete and log once; the caller must manage the transaction."""
     # Updating first acquires SQLite's write lock before reading the snapshot.
     # Concurrent completion requests cannot both perform this transition.
@@ -81,7 +87,12 @@ def complete_task(
     if changed:
         now = datetime.now(UK_TIMEZONE)
         db.insert_work_log(
-            database, task.id, task.name, now.date(), now.astimezone(UTC), task.duration,
+            database,
+            task.id,
+            task.name,
+            now.date(),
+            now.astimezone(UTC),
+            task.duration,
         )
     return True
 
@@ -105,7 +116,8 @@ def delete_task(  # Just a wrapper for delete_task_db
 
 
 def list_work_log(
-    database: sqlite3.Connection, work_date: date | None = None,
+    database: sqlite3.Connection,
+    work_date: date | None = None,
 ) -> list[WorkLogEntry]:
     return db.list_work_log(database, work_date)
 

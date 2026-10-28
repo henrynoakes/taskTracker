@@ -219,28 +219,38 @@ def list_tasks(
     database: sqlite3.Connection,
     field: str | None = None,
     value: object = None,
+    sort_by: str | None = None,
+    descending: bool = False,
 ) -> list[Task]:
+    query = "SELECT * FROM tasks"
+    params = []
 
-    if field is None:
-        rows = database.execute("SELECT * FROM tasks").fetchall()
-
-    else:
+    # Filtering
+    if field is not None:
         if field not in task_columns:
             raise ValueError(f"Invalid task field: {field}")
 
         if value is None:
-            query = f"SELECT * FROM tasks WHERE {field} IS NULL"
-            rows = database.execute(query).fetchall()
-
+            query += f" WHERE {field} IS NULL"
         else:
             if isinstance(value, (date, datetime)):
                 value = value.isoformat()
             elif isinstance(value, bool):
                 value = int(value)
 
-            query = f"SELECT * FROM tasks WHERE {field} = ?"
-            rows = database.execute(query, (value,)).fetchall()
+            query += f" WHERE {field} = ?"
+            params.append(value)
 
+    # Sorting
+    if sort_by is not None:
+        if sort_by not in task_columns:
+            raise ValueError(f"Invalid sort field: {sort_by}")
+
+        direction = "DESC" if descending else "ASC"
+
+        query += f" ORDER BY {sort_by} IS NULL, {sort_by} {direction}, id ASC"
+
+    rows = database.execute(query, params).fetchall()
     return [row_to_task(row) for row in rows]
 
 
@@ -291,8 +301,13 @@ def insert_work_log(
         INSERT INTO work_log (task_id, task_name, work_date, recorded_at, duration)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (task_id, task_name, work_date.isoformat(),
-         recorded_at.astimezone(UTC).isoformat(), duration),
+        (
+            task_id,
+            task_name,
+            work_date.isoformat(),
+            recorded_at.astimezone(UTC).isoformat(),
+            duration,
+        ),
     )
     entry_id = cursor.lastrowid
     if entry_id is None:
@@ -301,7 +316,8 @@ def insert_work_log(
 
 
 def list_work_log(
-    database: sqlite3.Connection, work_date: date | None = None,
+    database: sqlite3.Connection,
+    work_date: date | None = None,
 ) -> list[WorkLogEntry]:
     if work_date is None:
         rows = database.execute(
