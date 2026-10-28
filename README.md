@@ -38,3 +38,9 @@ The standard installation includes Uvicorn, the ASGI server that will run your a
 ```
 pip install pytest httpx
 ```
+
+Run the application with:
+
+```bash
+uvicorn tasktracker.app:app --reload
+```

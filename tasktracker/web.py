@@ -1,21 +1,14 @@
+from datetime import date
 from pathlib import Path
-
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from fastapi import HTTPException
-from fastapi.responses import RedirectResponse
 from typing import Annotated
 
-from fastapi import Form, HTTPException, Request
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 
-from . import database as db
 from . import operations as ops
-
-from datetime import date
-
 from . import scheduler
+from .db_connection import database_connection
 
 router = APIRouter(prefix="/web")
 
@@ -23,20 +16,13 @@ templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templat
 
 
 @router.get("/", response_class=HTMLResponse)
-def task_list(request: Request):
-    connection = db.connect_database(
-        Path(__file__).resolve().parent.parent / "tasks.db"
+def task_list(request: Request, connection: database_connection):
+    tasks = ops.list_tasks(
+        connection,
+        field="completed",
+        value=False,
+        sort_by="scheduled_date",
     )
-
-    try:
-        tasks = ops.list_tasks(
-            connection,
-            field="completed",
-            value=False,
-            sort_by="scheduled_date",
-        )
-    finally:
-        connection.close()
 
     return templates.TemplateResponse(
         request=request,
@@ -56,6 +42,7 @@ def new_task_form(request: Request):
 
 @router.post("/tasks/new")
 def create_task(
+    connection: database_connection,
     name: Annotated[str, Form()],
     priority: Annotated[int, Form()],
     duration: Annotated[int, Form()],
@@ -63,24 +50,16 @@ def create_task(
 ):
     parsed_due_date = date.fromisoformat(due_date) if due_date else None
 
-    connection = db.connect_database(
-        Path(__file__).resolve().parent.parent / "tasks.db"
-    )
+    with connection:
+        ops.add_task(
+            connection,
+            name=name,
+            priority=priority,
+            duration=duration,
+            due_date=parsed_due_date,
+        )
 
-    try:
-        with connection:
-            ops.add_task(
-                connection,
-                name=name,
-                priority=priority,
-                duration=duration,
-                due_date=parsed_due_date,
-            )
-
-            scheduler.schedule_tasks(connection)
-
-    finally:
-        connection.close()
+        scheduler.schedule_tasks(connection)
 
     return RedirectResponse(
         url="/web/",
@@ -89,23 +68,15 @@ def create_task(
 
 
 @router.post("/tasks/{task_id}/complete")
-def complete_task(task_id: int):
-    connection = db.connect_database(
-        Path(__file__).resolve().parent.parent / "tasks.db"
-    )
+def complete_task(task_id: int, connection: database_connection):
+    with connection:
+        completed = ops.complete_task(connection, task_id)
 
-    try:
-        with connection:
-            completed = ops.complete_task(connection, task_id)
-
-        if not completed:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Task {task_id} not found",
-            )
-
-    finally:
-        connection.close()
+    if not completed:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Task {task_id} not found",
+        )
 
     return RedirectResponse(
         url="/web/",
@@ -114,16 +85,9 @@ def complete_task(task_id: int):
 
 
 @router.post("/schedule")
-def regenerate_schedule():
-    connection = db.connect_database(
-        Path(__file__).resolve().parent.parent / "tasks.db"
-    )
-
-    try:
-        with connection:
-            scheduler.schedule_tasks(connection)
-    finally:
-        connection.close()
+def regenerate_schedule(connection: database_connection):
+    with connection:
+        scheduler.schedule_tasks(connection)
 
     return RedirectResponse(
         url="/web/",
@@ -132,11 +96,7 @@ def regenerate_schedule():
 
 
 @router.get("/tasks/{task_id}/edit", response_class=HTMLResponse)
-def edit_task_form(request: Request, task_id: int):
-    connection = db.connect_database(
-        Path(__file__).resolve().parent.parent / "tasks.db"
-    )
-
+def edit_task_form(request: Request, task_id: int, connection: database_connection):
     try:
         task = ops.get_task(connection, task_id)
     except ops.TaskNotFoundError:
@@ -144,8 +104,6 @@ def edit_task_form(request: Request, task_id: int):
             status_code=404,
             detail=f"Task {task_id} not found",
         ) from None
-    finally:
-        connection.close()
 
     return templates.TemplateResponse(
         request=request,
@@ -157,6 +115,7 @@ def edit_task_form(request: Request, task_id: int):
 @router.post("/tasks/{task_id}/edit")
 def edit_task(
     task_id: int,
+    connection: database_connection,
     name: Annotated[str, Form()],
     priority: Annotated[int, Form()],
     duration: Annotated[int, Form()],
@@ -170,41 +129,33 @@ def edit_task(
             detail="Invalid due date",
         ) from None
 
-    connection = db.connect_database(
-        Path(__file__).resolve().parent.parent / "tasks.db"
-    )
-
     try:
-        try:
-            with connection:
-                ops.get_task(connection, task_id)
+        with connection:
+            ops.get_task(connection, task_id)
 
-                changes = {
-                    "name": name,
-                    "priority": priority,
-                    "duration": duration,
-                    "due_date": parsed_due_date,
-                }
+            changes = {
+                "name": name,
+                "priority": priority,
+                "duration": duration,
+                "due_date": parsed_due_date,
+            }
 
-                for field, value in changes.items():
-                    ops.edit_task(connection, task_id, field, value)
+            for field, value in changes.items():
+                ops.edit_task(connection, task_id, field, value)
 
-                scheduler.schedule_tasks(connection)
+            scheduler.schedule_tasks(connection)
 
-        except ops.TaskNotFoundError:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Task {task_id} not found",
-            ) from None
+    except ops.TaskNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Task {task_id} not found",
+        ) from None
 
-        except (ValueError, TypeError) as error:
-            raise HTTPException(
-                status_code=422,
-                detail=str(error),
-            ) from error
-
-    finally:
-        connection.close()
+    except (ValueError, TypeError) as error:
+        raise HTTPException(
+            status_code=422,
+            detail=str(error),
+        ) from error
 
     return RedirectResponse(
         url="/web/",
@@ -213,25 +164,17 @@ def edit_task(
 
 
 @router.post("/tasks/{task_id}/delete")
-def delete_task(task_id: int):
-    connection = db.connect_database(
-        Path(__file__).resolve().parent.parent / "tasks.db"
-    )
+def delete_task(task_id: int, connection: database_connection):
+    with connection:
+        deleted = ops.delete_task(connection, task_id)
 
-    try:
-        with connection:
-            deleted = ops.delete_task(connection, task_id)
+        if not deleted:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Task {task_id} not found",
+            )
 
-            if not deleted:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Task {task_id} not found",
-                )
-
-            scheduler.schedule_tasks(connection)
-
-    finally:
-        connection.close()
+        scheduler.schedule_tasks(connection)
 
     return RedirectResponse(
         url="/web/",

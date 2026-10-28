@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
-from tasktracker import api, scheduler
+from tasktracker import db_connection, scheduler
 from tasktracker import database as db
 
 TODAY = date(2026, 7, 2)
@@ -101,7 +101,7 @@ def test_completion_does_not_reschedule_and_next_schedule_counts_work(client, mo
 def test_manual_schedule_persists_and_reports_unscheduled(client):
     task = create(client, "Fits", 2)
     oversized = create(client, "Too large", 6)
-    with closing(db.connect_database(api.database_path)) as connection, connection:
+    with closing(db.connect_database(db_connection.database_path)) as connection, connection:
         db.edit_task(connection, task["id"], "scheduled_date", None)
         db.edit_task(connection, oversized["id"], "scheduled_date", "2020-01-01")
     response = client.post("/schedule")
@@ -117,7 +117,7 @@ def test_schedule_failure_rolls_back_modification_and_all_schedule_changes(clien
     second = create(client, "Second", 2)
     completed = create(client, "Completed", 1)
     assert client.post(f"/tasks/{completed['id']}/complete").status_code == 200
-    with closing(db.connect_database(api.database_path)) as connection, connection:
+    with closing(db.connect_database(db_connection.database_path)) as connection, connection:
         for task in (first, second):
             db.edit_task(connection, task["id"], "scheduled_date", "2020-01-01")
         connection.execute(

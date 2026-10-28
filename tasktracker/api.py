@@ -1,69 +1,22 @@
-import sqlite3
-from collections.abc import Generator
-from contextlib import asynccontextmanager
 from datetime import date, datetime
-from pathlib import Path
-from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from . import database as db
 from . import operations as ops
 from . import scheduler
+from .db_connection import database_connection
 from .schemas import TaskCreate, TaskUpdate
-from .web import router as web_router
-from fastapi.staticfiles import StaticFiles
 
-database_path = Path(__file__).resolve().parent.parent / "tasks.db"
+router = APIRouter()
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    connection = db.connect_database(database_path)
-
-    try:
-        db.initialize_database(connection)
-        connection.commit()
-    finally:
-        connection.close()
-
-    yield
-
-
-def get_connection() -> Generator[sqlite3.Connection, None, None]:
-    connection = db.connect_database(str(database_path))
-
-    try:
-        yield connection
-
-    finally:
-        connection.close()
-
-
-database_connection = Annotated[
-    sqlite3.Connection,
-    Depends(get_connection),
-]
-
-# Creates a FastAPI application and tells it which function to use for startup and shutdown operations.
-app = FastAPI(lifespan=lifespan)
-
-
-app.mount(
-    "/static",
-    StaticFiles(directory=Path(__file__).resolve().parent / "static"),
-    name="static",
-)
-# Allows fastAPI to understand the route the webui takes
-app.include_router(web_router)
-
-
-@app.get("/")
+@router.get("/")
 def root() -> dict[str, str]:
     return {"message": "Task tracker API"}
 
 
-@app.get("/tasks/{task_id}")
+@router.get("/tasks/{task_id}")
 def get_task(
     task_id: int,
     connection: database_connection,
@@ -101,7 +54,7 @@ def parse_filter_value(field: str, value: str) -> object:
     return value
 
 
-@app.get("/tasks")
+@router.get("/tasks")
 def list_tasks(
     connection: database_connection,
     field: str | None = None,
@@ -145,7 +98,7 @@ def list_tasks(
         ) from error
 
 
-@app.post("/tasks", status_code=201)
+@router.post("/tasks", status_code=201)
 def create_task(
     task: TaskCreate,
     connection: database_connection,
@@ -171,7 +124,7 @@ def create_task(
     return ops.get_task(connection, task_id)
 
 
-@app.patch("/tasks/{task_id}")
+@router.patch("/tasks/{task_id}")
 def update_task(
     task_id: int,
     update: TaskUpdate,
@@ -203,7 +156,7 @@ def update_task(
         ) from None
 
 
-@app.post("/tasks/{task_id}/complete")
+@router.post("/tasks/{task_id}/complete")
 def complete_task(
     task_id: int,
     connection: database_connection,
@@ -220,7 +173,7 @@ def complete_task(
     return ops.get_task(connection, task_id)
 
 
-@app.delete("/tasks/{task_id}", status_code=204)
+@router.delete("/tasks/{task_id}", status_code=204)
 def delete_task(
     task_id: int,
     connection: database_connection,
@@ -237,7 +190,7 @@ def delete_task(
         )
 
 
-@app.post("/schedule")
+@router.post("/schedule")
 def schedule_tasks(connection: database_connection):
     with connection:
         all_scheduled = scheduler.schedule_tasks(connection)
@@ -247,11 +200,11 @@ def schedule_tasks(connection: database_connection):
     }
 
 
-@app.get("/work-log/summary")
+@router.get("/work-log/summary")
 def work_log_summary(connection: database_connection):
     return ops.get_work_log_summary(connection)
 
 
-@app.get("/work-log")
+@router.get("/work-log")
 def list_work_log(connection: database_connection, work_date: date | None = None):
     return ops.list_work_log(connection, work_date)

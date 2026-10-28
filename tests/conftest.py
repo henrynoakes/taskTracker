@@ -6,9 +6,10 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from tasktracker import api, scheduler
+from tasktracker import db_connection, scheduler
 from tasktracker import database as db
 from tasktracker import operations as ops
+from tasktracker.app import app
 
 
 @pytest.fixture
@@ -26,8 +27,8 @@ def freeze_time(monkeypatch: pytest.MonkeyPatch):
 
 @pytest.fixture
 def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
-    monkeypatch.setattr(api, "database_path", tmp_path / "tasks.db")
-    with TestClient(api.app) as client:
+    monkeypatch.setattr(db_connection, "database_path", tmp_path / "tasks.db")
+    with TestClient(app) as client:
         yield client
 
 
