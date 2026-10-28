@@ -11,6 +11,8 @@ from . import database as db
 from . import operations as ops
 from . import scheduler
 from .schemas import TaskCreate, TaskUpdate
+from .web import router as web_router
+from fastapi.staticfiles import StaticFiles
 
 database_path = Path(__file__).resolve().parent.parent / "tasks.db"
 
@@ -45,6 +47,15 @@ database_connection = Annotated[
 
 # Creates a FastAPI application and tells it which function to use for startup and shutdown operations.
 app = FastAPI(lifespan=lifespan)
+
+
+app.mount(
+    "/static",
+    StaticFiles(directory=Path(__file__).resolve().parent / "static"),
+    name="static",
+)
+# Allows fastAPI to understand the route the webui takes
+app.include_router(web_router)
 
 
 @app.get("/")

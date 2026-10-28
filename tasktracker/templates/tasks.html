@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Tasks — Task Tracker{% endblock %}
+
+{% block content %}
+
+<div class="page-heading">
+    <h2>Tasks</h2>
+
+    <div class="page-actions">
+        <form action="/web/schedule" method="post">
+            <button type="submit">Regenerate schedule</button>
+        </form>
+
+        <a href="/web/tasks/new">+ Add task</a>
+    </div>
+</div>
+
+{% if tasks %}
+    <ul class="task-list">
+        {% for task in tasks %}
+            <li class="task">
+                <div class="task-info">
+                    <span class="task-name">
+                        {{ task.name }}
+                    </span>
+
+                    <span class="task-details">
+                        P{{ task.priority }}
+                        · {{ task.duration * 30 }} min
+
+                        {% if task.scheduled_date %}
+                            · {{ task.scheduled_date }}
+                        {% else %}
+                            · Unscheduled
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="task-actions">
+                    <a href="/web/tasks/{{ task.id }}/edit">Edit</a>
+
+                    <form
+                        action="/web/tasks/{{ task.id }}/complete"
+                        method="post"
+                    >
+                        <button type="submit">Complete</button>
+                    </form>
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No incomplete tasks.</p>
+{% endif %}
+
+{% endblock %}

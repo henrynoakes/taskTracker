@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if task is defined %}
+        Edit Task
+    {% else %}
+        Add Task
+    {% endif %}
+    — Task Tracker
+{% endblock %}
+
+{% block content %}
+
+{% if task is defined %}
+    <h2>Edit task</h2>
+{% else %}
+    <h2>Add task</h2>
+{% endif %}
+
+<form
+    action="{% if task is defined %}/web/tasks/{{ task.id }}/edit{% else %}/web/tasks/new{% endif %}"
+    method="post"
+    class="task-form"
+>
+
+    <label for="name">Name</label>
+    <input
+        type="text"
+        id="name"
+        name="name"
+        value="{{ task.name if task is defined else '' }}"
+        required
+        autofocus
+    >
+
+    <label for="priority">Priority</label>
+    <select id="priority" name="priority" required>
+        {% for priority in range(1, 6) %}
+            <option
+                value="{{ priority }}"
+                {% if (task.priority if task is defined else 3) == priority %}
+                    selected
+                {% endif %}
+            >
+                {{ priority }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <label for="duration">Duration (30-minute increments)</label>
+    <input
+        type="number"
+        id="duration"
+        name="duration"
+        min="1"
+        max="10"
+        value="{{ task.duration if task is defined else 1 }}"
+        required
+    >
+
+    <label for="due_date">Due date (optional)</label>
+    <input
+        type="date"
+        id="due_date"
+        name="due_date"
+        value="{{ task.due_date.isoformat() if task is defined and task.due_date else '' }}"
+    >
+
+    <div class="form-actions">
+        <button type="submit">
+            {% if task is defined %}
+                Save changes
+            {% else %}
+                Add task
+            {% endif %}
+        </button>
+
+        <a href="/web/">Cancel</a>
+    </div>
+
+</form>
+
+{% if task is defined %}
+    <div class="delete-section">
+        <form
+            action="/web/tasks/{{ task.id }}/delete"
+            method="post"
+            onsubmit="return confirm('Are you sure you want to delete this task?');"
+        >
+            <button type="submit" class="delete-button">
+                Delete task
+            </button>
+        </form>
+    </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,158 @@
+:root {
+    font-family: system-ui, sans-serif;
+    color-scheme: light dark;
+}
+
+body {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
+    line-height: 1.5;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid #888;
+}
+
+header h1 {
+    font-size: 1.25rem;
+}
+
+a {
+    color: inherit;
+}
+
+.task-list {
+    list-style: none;
+    padding: 0;
+}
+
+.task {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #8885;
+}
+
+.task-name {
+    overflow-wrap: anywhere;
+}
+
+.task-details {
+    color: gray;
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    .task {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+}
+
+.task-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.task form {
+    flex-shrink: 0;
+}
+
+.task button {
+    font: inherit;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+}
+
+.page-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.task-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 400px;
+}
+
+.task-form label {
+    margin-top: 0.75rem;
+    font-weight: 600;
+}
+
+.task-form input,
+.task-form select {
+    font: inherit;
+    padding: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.form-actions button {
+    font: inherit;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+}
+
+.page-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.page-actions button {
+    font: inherit;
+    padding: 0.3rem 0.7rem;
+    cursor: pointer;
+}
+
+@media (max-width: 600px) {
+    .page-actions {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+}
+
+.task-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+.task-actions a {
+    font-size: 0.875rem;
+}
+
+.delete-section {
+    max-width: 400px;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #8885;
+}
+
+.delete-button {
+    font: inherit;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    color: #c33;
+}
