@@ -21,7 +21,7 @@ def calculate_importance(task: Task, today: date) -> float:
         urgency_score = 8 / (max(days_left, 0) + 1)
 
     # Duration: 0.05 to 0.5, a small preference for longer tasks.
-    duration_score = 0.05 * task.duration
+    duration_score = 0.10 * task.duration
 
     return priority_score + age_score + urgency_score + duration_score
 
