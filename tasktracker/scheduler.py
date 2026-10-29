@@ -20,7 +20,10 @@ def calculate_importance(task: Task, today: date) -> float:
         days_left = (task.due_date - today).days
         urgency_score = 8 / (max(days_left, 0) + 1)
 
-    return priority_score + age_score + urgency_score
+    # Duration: 0.05 to 0.5, a small preference for longer tasks.
+    duration_score = 0.05 * task.duration
+
+    return priority_score + age_score + urgency_score + duration_score
 
 
 def calculate_schedule(

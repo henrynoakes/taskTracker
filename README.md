@@ -5,7 +5,7 @@
 Currently the scheduler is very naive, I call it priority-ordered first-fit bin packing. It follows this sequence:
 
 1. Gather all uncompleted tasks
-2. Calculate for each task an importance, which is a function of days to deadline (or from), priority, age.
+2. Calculate for each task an importance, which is a function of days to deadline (or from), priority, age, and duration. Each duration block adds 0.05 importance points, giving longer tasks a slight preference.
 3. Order tasks in order of decreasing importance.
 4. Attempt to fit the first task into the first day, if it doesn't fit move onto the next until you reach a task that fits.
 5. When a task is added to the day remove it from the list.

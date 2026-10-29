@@ -56,11 +56,26 @@ def test_schedule_capacity_and_priority_order(completed):
     }
 
 
-def test_importance_formula_unchanged():
+def test_importance_includes_small_duration_bonus():
     task = make_task(1, 3, priority=3)
     task.created_at = datetime(2026, 6, 17, tzinfo=UTC)
     task.due_date = TODAY + timedelta(days=3)
-    assert scheduler.calculate_importance(task, TODAY) == 2.5 + 1 + 2
+    assert scheduler.calculate_importance(task, TODAY) == pytest.approx(2.5 + 1 + 2 + 0.15)
+
+
+def test_longer_task_scheduled_first_when_other_factors_match():
+    short = make_task(1, 1)
+    long = make_task(2, 5)
+    assert scheduler.calculate_schedule([short, long], TODAY) == {
+        long.id: TODAY,
+        short.id: TODAY + timedelta(days=1),
+    }
+
+
+def test_duration_bonus_does_not_override_priority():
+    short = make_task(1, 1, priority=1)
+    long = make_task(2, 10, priority=2)
+    assert scheduler.calculate_importance(short, TODAY) > scheduler.calculate_importance(long, TODAY)
 
 
 @pytest.mark.parametrize("capacity, completed", [(0, 0), (-1, 0), (5, -1)])
