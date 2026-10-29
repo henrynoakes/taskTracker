@@ -284,10 +284,43 @@ a:hover {
     gap: 1rem;
 }
 
-.page-actions button {
+.page-actions .text-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
     font: inherit;
-    padding: 0.3rem 0.7rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--blue);
     cursor: pointer;
+    white-space: nowrap;
+}
+
+.page-actions .text-button::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.1em;
+    height: 1px;
+    background-color: currentColor;
+    pointer-events: none;
+}
+
+.text-button .nerd-icon {
+    /* Propo gives GUI icons their actual width; Mono fits them inside one cell. */
+    font-family: "JetBrainsMono Nerd Font Propo", "JetBrainsMono Nerd Font Mono", "JetBrainsMono Nerd Font", monospace;
+    font-weight: normal;
+    font-style: normal;
+    flex: none;
+    overflow: visible;
+}
+
+.page-actions .text-button:hover::after {
+    background-color: var(--lavender);
+    height: 2px;
 }
 
 @media (max-width: 600px) {
