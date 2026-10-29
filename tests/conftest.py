@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from tasktracker import db_connection, scheduler
+from tasktracker import db_connection, scheduler, web
 from tasktracker import database as db
 from tasktracker import operations as ops
 from tasktracker.app import app
@@ -22,6 +22,7 @@ def freeze_time(monkeypatch: pytest.MonkeyPatch):
 
         monkeypatch.setattr(ops, "datetime", FrozenDatetime)
         monkeypatch.setattr(scheduler, "datetime", FrozenDatetime)
+        monkeypatch.setattr(web, "datetime", FrozenDatetime)
     return freeze
 
 

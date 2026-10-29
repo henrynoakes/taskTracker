@@ -1,0 +1,51 @@
+<script>
+    document.querySelectorAll(".task-completion").forEach((form) => {
+        const task = form.closest(".task");
+        const checkbox = form.querySelector("input");
+        const status = task.querySelector(".completion-status");
+        let timer;
+
+        form.addEventListener("submit", (event) => event.preventDefault());
+        checkbox.addEventListener("change", () => {
+            clearTimeout(timer);
+            task.classList.toggle("task-pending", checkbox.checked);
+            status.textContent = "";
+
+            if (!checkbox.checked) return;
+
+            timer = setTimeout(async () => {
+                checkbox.disabled = true;
+                status.textContent = "Saving…";
+
+                try {
+                    const response = await fetch(form.dataset.completeUrl, {method: "POST"});
+                    if (!response.ok) throw new Error("Completion failed");
+                    const group = task.closest(".schedule-day");
+                    task.remove();
+                    if (group) {
+                        const remaining = Array.from(group.querySelectorAll(".task"));
+                        if (remaining.length === 0) {
+                            group.remove();
+                        } else {
+                            const increments = remaining.reduce((total, row) => total + Number(row.dataset.duration), 0);
+                            const hours = Math.floor(increments / 2);
+                            const minutes = (increments % 2) * 30;
+                            group.querySelector(".schedule-total").textContent =
+                                [hours ? `${hours} h` : "", minutes ? `${minutes} min` : ""].filter(Boolean).join(" ");
+                        }
+                    }
+                    document.getElementById("empty-tasks").hidden =
+                        document.querySelector(".task") !== null;
+                } catch {
+                    checkbox.checked = false;
+                    checkbox.disabled = false;
+                    task.classList.remove("task-pending");
+                    status.textContent = "Could not complete task. Please try again.";
+                }
+            }, 2500);
+        });
+
+        form.querySelector("button").hidden = true;
+        form.querySelector("label").hidden = false;
+    });
+</script>

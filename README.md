@@ -50,16 +50,19 @@ Run the application with:
 uvicorn tasktracker.app:app --reload
 ```
 
-## Optional local font dependency
+## Fonts
 
-The web UI uses **JetBrains Mono Nerd Font** when it is installed on the device
-running your browser. Download the JetBrainsMono archive from the
+The web UI serves **JetBrains Mono Nerd Font** from `tasktracker/static/fonts/`.
+The stylesheet declares regular, bold, italic and bold italic WOFF2 files. Each is
+approximately 1 MB; browsers download only the styles used on the page. Installed
+copies are preferred, and `font-display: swap` lets system-font text appear while
+downloads finish. No external font service is contacted.
+
+Browsers can cache these files between visits. The static-file server provides
+ETag and Last-Modified headers and supports `304 Not Modified` responses when a
+cached file is unchanged. A cleared or disabled cache can require downloading
+the fonts again.
+
+Optionally install JetBrains Mono Nerd Font on your browsing device from the
 [official Nerd Fonts releases](https://github.com/ryanoasis/nerd-fonts/releases/latest)
-and install the font files using your operating system's font installer. Restart
-your browser if the font does not appear immediately.
-
-The stylesheet supports the `JetBrainsMono Nerd Font` and
-`JetBrainsMono Nerd Font Mono` family names. If neither is available, it uses the
-existing system-font fallback. The site does not download fonts or contact a font
-service, so this adds no network requests or font download time. Installing the
-font on the server alone does not install it on other devices viewing the site.
+to avoid downloading matching font files from the website.

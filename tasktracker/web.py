@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime
+from itertools import groupby
 from pathlib import Path
 from typing import Annotated
 
@@ -10,6 +11,7 @@ from . import operations as ops
 from . import scheduler
 from .db_connection import database_connection
 from .markdown_rendering import render_markdown, render_markdown_preview
+from .web_formatting import format_duration, format_schedule_date
 
 router = APIRouter(prefix="/web")
 
@@ -97,6 +99,30 @@ def regenerate_schedule(connection: database_connection):
     return RedirectResponse(
         url="/web/",
         status_code=303,
+    )
+
+
+@router.get("/schedule", response_class=HTMLResponse)
+def schedule(request: Request, connection: database_connection):
+    today = datetime.now(ops.UK_TIMEZONE).date()
+    tasks = ops.list_tasks(
+        connection, field="completed", value=False, sort_by="scheduled_date",
+    )
+    groups = []
+    for scheduled_date, task_group in groupby(tasks, key=lambda task: task.scheduled_date):
+        grouped_tasks = list(task_group)
+        groups.append({
+            "heading": format_schedule_date(scheduled_date, today)
+            if scheduled_date is not None else "Unscheduled",
+            "overdue": scheduled_date is not None and scheduled_date < today,
+            "tasks": grouped_tasks,
+            "duration": format_duration(sum(task.duration for task in grouped_tasks)),
+        })
+
+    return templates.TemplateResponse(
+        request=request,
+        name="schedule.html",
+        context={"groups": groups},
     )
 
 

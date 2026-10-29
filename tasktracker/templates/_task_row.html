@@ -1,0 +1,42 @@
+<li class="task" data-duration="{{ task.duration }}">
+    <div class="task-content">
+        <form
+            class="task-completion"
+            action="/web/tasks/{{ task.id }}/complete"
+            data-complete-url="/tasks/{{ task.id }}/complete"
+            method="post"
+        >
+            <label class="completion-control" hidden>
+                <input
+                    type="checkbox"
+                    aria-label="Complete {{ task.name }}; uncheck within 2.5 seconds to cancel"
+                >
+                <span class="completion-mark" aria-hidden="true"></span>
+            </label>
+            <button type="submit">Complete</button>
+        </form>
+
+        <div class="task-info">
+            <a class="task-name task-link" href="/web/tasks/{{ task.id }}">
+                {{ task.name }}
+            </a>
+            {% if task.description %}
+                <div class="task-description-preview">{{ task.description | markdown_preview | safe }}</div>
+            {% endif %}
+            <span class="completion-status" role="status"></span>
+
+            <span class="task-details">
+                P{{ task.priority }}
+                · {{ task.duration * 30 }} min
+
+                {% if show_scheduled_date | default(true) %}
+                    {% if task.scheduled_date %}
+                        · {{ task.scheduled_date }}
+                    {% else %}
+                        · Unscheduled
+                    {% endif %}
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</li>

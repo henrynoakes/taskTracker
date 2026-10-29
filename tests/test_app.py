@@ -26,7 +26,7 @@ def test_api_and_web_routes_registered(client):
         "/web/tasks/{task_id}/edit": {"get", "post"},
         "/web/tasks/{task_id}/complete": {"post"},
         "/web/tasks/{task_id}/delete": {"post"},
-        "/web/schedule": {"post"},
+        "/web/schedule": {"get", "post"},
     }
 
 
@@ -36,6 +36,20 @@ def test_static_files_served(client):
     assert response.headers["content-type"].startswith("text/css")
     stylesheet = Path(__file__).resolve().parent.parent / "tasktracker/static/style.css"
     assert response.content == stylesheet.read_bytes()
+
+
+@pytest.mark.parametrize("style", ["Regular", "Bold", "Italic", "BoldItalic"])
+def test_font_files_served_and_revalidated(client, style):
+    path = f"/static/fonts/JetBrainsMonoNerdFont-{style}.woff2"
+    response = client.get(path)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "font/woff2"
+    assert response.content[:4] == b"wOF2"
+    assert len(response.content) == int(response.headers["content-length"])
+    assert "last-modified" in response.headers
+    cached = client.get(path, headers={"If-None-Match": response.headers["etag"]})
+    assert cached.status_code == 304
+    assert cached.content == b""
 
 
 def test_startup_initializes_new_and_existing_database(tmp_path, monkeypatch):

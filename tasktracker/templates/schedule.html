@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <h2>Schedule</h2>
+    {% include "_task_list_actions.html" %}
+</div>
+
+{% for group in groups %}
+    <section class="schedule-day{% if group.overdue %} schedule-overdue{% endif %}" aria-labelledby="schedule-day-{{ loop.index }}">
+        <div class="schedule-day-heading">
+            <h3 id="schedule-day-{{ loop.index }}">{{ group.heading }}</h3>
+            <span class="schedule-total">{{ group.duration }}</span>
+        </div>
+        <ul class="task-list">
+            {% for task in group.tasks %}
+                {% with show_scheduled_date=false %}
+                    {% include "_task_row.html" %}
+                {% endwith %}
+            {% endfor %}
+        </ul>
+    </section>
+{% endfor %}
+
+<p id="empty-tasks"{% if groups %} hidden{% endif %}>No incomplete tasks.</p>
+
+{% include "_task_completion.html" %}
+{% endblock %}

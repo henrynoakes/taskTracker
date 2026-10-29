@@ -1,3 +1,40 @@
+/* Prefer installed copies; download only the font styles used by the page. */
+@font-face {
+    font-family: "JetBrainsMono Nerd Font";
+    src: local("JetBrainsMono NF Regular"), local("JetBrainsMonoNF-Regular"),
+        url("fonts/JetBrainsMonoNerdFont-Regular.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "JetBrainsMono Nerd Font";
+    src: local("JetBrainsMono NF Bold"), local("JetBrainsMonoNF-Bold"),
+        url("fonts/JetBrainsMonoNerdFont-Bold.woff2") format("woff2");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "JetBrainsMono Nerd Font";
+    src: local("JetBrainsMono NF Italic"), local("JetBrainsMonoNF-Italic"),
+        url("fonts/JetBrainsMonoNerdFont-Italic.woff2") format("woff2");
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "JetBrainsMono Nerd Font";
+    src: local("JetBrainsMono NF Bold Italic"), local("JetBrainsMonoNF-BoldItalic"),
+        url("fonts/JetBrainsMonoNerdFont-BoldItalic.woff2") format("woff2");
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+}
+
 :root {
     /* Official Catppuccin Latte palette (light mode). */
     --base: #eff1f5;
@@ -97,6 +134,18 @@ header h1 {
     font-size: 1.25rem;
 }
 
+header nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+header nav span {
+    color: var(--subtext-0);
+}
+
 a {
     color: var(--blue);
     text-underline-offset: 0.2em;
@@ -110,6 +159,44 @@ a:hover {
 .task-list {
     list-style: none;
     padding: 0;
+}
+
+.schedule-day {
+    margin-top: 1.5rem;
+}
+
+.schedule-day-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--surface-2);
+}
+
+.schedule-day-heading h3 {
+    margin: 0;
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+}
+
+.schedule-total {
+    color: var(--subtext-0);
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+.schedule-overdue h3 {
+    color: var(--red);
+}
+
+.schedule-day .task-list {
+    margin-top: 0;
+}
+
+.schedule-day .task-details {
+    white-space: normal;
 }
 
 .task {
