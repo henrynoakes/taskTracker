@@ -20,38 +20,89 @@
     <ul class="task-list">
         {% for task in tasks %}
             <li class="task">
-                <div class="task-info">
-                    <span class="task-name">
-                        {{ task.name }}
-                    </span>
+                <div class="task-content">
+                    <form
+                        class="task-completion"
+                        action="/web/tasks/{{ task.id }}/complete"
+                        data-complete-url="/tasks/{{ task.id }}/complete"
+                        method="post"
+                    >
+                        <label class="completion-control" hidden>
+                            <input
+                                type="checkbox"
+                                aria-label="Complete {{ task.name }}; uncheck within 2.5 seconds to cancel"
+                            >
+                            <span class="completion-mark" aria-hidden="true"></span>
+                        </label>
+                        <button type="submit">Complete</button>
+                    </form>
 
-                    <span class="task-details">
-                        P{{ task.priority }}
-                        · {{ task.duration * 30 }} min
+                    <div class="task-info">
+                        <span class="task-name">
+                            {{ task.name }}
+                        </span>
+                        <span class="completion-status" role="status"></span>
 
-                        {% if task.scheduled_date %}
-                            · {{ task.scheduled_date }}
-                        {% else %}
-                            · Unscheduled
-                        {% endif %}
-                    </span>
+                        <span class="task-details">
+                            P{{ task.priority }}
+                            · {{ task.duration * 30 }} min
+
+                            {% if task.scheduled_date %}
+                                · {{ task.scheduled_date }}
+                            {% else %}
+                                · Unscheduled
+                            {% endif %}
+                        </span>
+                    </div>
                 </div>
 
                 <div class="task-actions">
                     <a href="/web/tasks/{{ task.id }}/edit">Edit</a>
-
-                    <form
-                        action="/web/tasks/{{ task.id }}/complete"
-                        method="post"
-                    >
-                        <button type="submit">Complete</button>
-                    </form>
                 </div>
             </li>
         {% endfor %}
     </ul>
-{% else %}
-    <p>No incomplete tasks.</p>
 {% endif %}
+
+<p id="empty-tasks"{% if tasks %} hidden{% endif %}>No incomplete tasks.</p>
+
+<script>
+    document.querySelectorAll(".task-completion").forEach((form) => {
+        const task = form.closest(".task");
+        const checkbox = form.querySelector("input");
+        const status = task.querySelector(".completion-status");
+        let timer;
+
+        form.addEventListener("submit", (event) => event.preventDefault());
+        checkbox.addEventListener("change", () => {
+            clearTimeout(timer);
+            task.classList.toggle("task-pending", checkbox.checked);
+            status.textContent = "";
+
+            if (!checkbox.checked) return;
+
+            timer = setTimeout(async () => {
+                checkbox.disabled = true;
+                status.textContent = "Saving…";
+
+                try {
+                    const response = await fetch(form.dataset.completeUrl, {method: "POST"});
+                    if (!response.ok) throw new Error("Completion failed");
+                    task.remove();
+                    document.getElementById("empty-tasks").hidden =
+                        document.querySelector(".task") !== null;
+                } catch {
+                    checkbox.checked = false;
+                    checkbox.disabled = false;
+                    task.classList.remove("task-pending");
+                    status.textContent = "Could not complete task. Please try again.";
+                }
+            }, 2500);
+        });
+
+        form.querySelector("button").hidden = true;
+        form.querySelector("label").hidden = false;
+    });
+</script>
 
 {% endblock %}
