@@ -64,8 +64,8 @@ def test_new_database_has_nullable_description(connection):
     assert columns['description']['notnull'] == 0
 
 
-def test_migrate_existing_database_preserves_tasks_work_log_and_ids(tmp_path):
-    path = tmp_path / 'legacy.db'
+def test_initialize_existing_database_preserves_tasks_work_log_and_ids(tmp_path):
+    path = tmp_path / 'existing.db'
     connection = db.connect_database(path)
     try:
         with connection:
@@ -73,7 +73,7 @@ def test_migrate_existing_database_preserves_tasks_work_log_and_ids(tmp_path):
                 CREATE TABLE tasks (
                     id INTEGER PRIMARY KEY, name TEXT NOT NULL, priority INTEGER NOT NULL,
                     duration INTEGER NOT NULL, due_date TEXT, created_at TEXT NOT NULL,
-                    completed INTEGER NOT NULL DEFAULT 0, scheduled_date TEXT
+                    completed INTEGER NOT NULL DEFAULT 0, scheduled_date TEXT, description TEXT
                 );
                 CREATE TABLE work_log (
                     id INTEGER PRIMARY KEY, task_id INTEGER, task_name TEXT NOT NULL,
@@ -82,8 +82,8 @@ def test_migrate_existing_database_preserves_tasks_work_log_and_ids(tmp_path):
                     FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL
                 );
                 INSERT INTO tasks VALUES
-                    (12, 'Completed', 1, 3, '2026-11-01', '2026-10-28T12:00:00+00:00', 1, '2026-10-28'),
-                    (25, 'Pending', 2, 4, NULL, '2026-10-28T13:00:00+00:00', 0, '2026-10-29');
+                    (12, 'Completed', 1, 3, '2026-11-01', '2026-10-28T12:00:00+00:00', 1, '2026-10-28', NULL),
+                    (25, 'Pending', 2, 4, NULL, '2026-10-28T13:00:00+00:00', 0, '2026-10-29', NULL);
                 INSERT INTO work_log VALUES
                     (7, 12, 'Historical name', '2026-10-28', '2026-10-28T12:00:00+00:00', 3);
             ''')
@@ -93,7 +93,7 @@ def test_migrate_existing_database_preserves_tasks_work_log_and_ids(tmp_path):
             db.initialize_database(connection)
             db.initialize_database(connection)
         after = connection.execute('SELECT * FROM tasks ORDER BY id').fetchall()
-        assert [tuple(row)[:-1] for row in after] == before
+        assert [tuple(row) for row in after] == before
         assert all(row['description'] is None for row in after)
         assert ops.list_work_log(connection) == history
         with connection:

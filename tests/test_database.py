@@ -39,11 +39,11 @@ def test_initialize_database_migrates_existing_tasks() -> None:
         with connection:
             connection.execute(
                 "CREATE TABLE tasks (id INTEGER PRIMARY KEY, name TEXT, priority INTEGER, "
-                "duration INTEGER, due_date TEXT, created_at TEXT, completed INTEGER)"
+                "duration INTEGER, due_date TEXT, created_at TEXT, completed INTEGER, description TEXT)"
             )
             connection.execute(
                 "INSERT INTO tasks VALUES "
-                "(1, 'Existing', 2, 3, '2026-11-10', '2026-10-01T12:00:00+00:00', 0)"
+                "(1, 'Existing', 2, 3, '2026-11-10', '2026-10-01T12:00:00+00:00', 0, NULL)"
             )
             db.initialize_database(connection)
             db.initialize_database(connection)

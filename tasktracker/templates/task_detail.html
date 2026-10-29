@@ -12,9 +12,7 @@
 <dl class="task-metadata">
     <dt>Priority</dt><dd>{{ task.priority }}</dd>
     <dt>Duration</dt><dd>{{ task.duration * 30 }} minutes</dd>
-    {% if task.due_date %}
-        <dt>Due date</dt><dd><time datetime="{{ task.due_date.isoformat() }}">{{ task.due_date.day }} {{ task.due_date.strftime('%B %Y') }}</time></dd>
-    {% endif %}
+    <dt>Due date</dt><dd>{% if task.due_date %}<time datetime="{{ task.due_date.isoformat() }}">{{ task.due_date.day }} {{ task.due_date.strftime('%B %Y') }}</time>{% else %}None{% endif %}</dd>
     {% if task.scheduled_date %}
         <dt>Scheduled</dt><dd><time datetime="{{ task.scheduled_date.isoformat() }}">{{ task.scheduled_date.day }} {{ task.scheduled_date.strftime('%B %Y') }}</time></dd>
     {% endif %}
@@ -22,8 +20,7 @@
 </dl>
 
 {% if task.description %}
-    <section class="task-description" aria-labelledby="description-heading">
-        <h3 id="description-heading">Description</h3>
+    <section class="task-description" aria-label="Description">
         <div class="markdown-body">{{ task.description | markdown | safe }}</div>
     </section>
 {% endif %}
@@ -33,8 +30,9 @@
     {% if task.completed %}
         <span class="task-completed">Completed</span>
     {% else %}
-        <form action="/web/tasks/{{ task.id }}/complete" method="post">
-            <button type="submit">Complete</button>
+        <form action="/web/tasks/{{ task.id }}/complete" method="post"
+              onsubmit="return confirm('Are you sure you want to complete this task?');">
+            <button type="submit" class="text-button">Complete</button>
         </form>
     {% endif %}
 </div>

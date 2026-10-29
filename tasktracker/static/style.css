@@ -388,7 +388,8 @@ a:hover {
     gap: 1rem;
 }
 
-.page-actions .text-button {
+.page-actions .text-button,
+.task-detail-actions .text-button {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -402,7 +403,8 @@ a:hover {
     white-space: nowrap;
 }
 
-.page-actions .text-button::after {
+.page-actions .text-button::after,
+.task-detail-actions .text-button::after {
     content: "";
     position: absolute;
     left: 0;
@@ -422,7 +424,8 @@ a:hover {
     overflow: visible;
 }
 
-.page-actions .text-button:hover::after {
+.page-actions .text-button:hover::after,
+.task-detail-actions .text-button:hover::after {
     background-color: var(--lavender);
     height: 2px;
 }

@@ -45,8 +45,6 @@ def initialize_database(database: sqlite3.Connection) -> None:
     columns = {row["name"] for row in database.execute("PRAGMA table_info(tasks)")}
     if "scheduled_date" not in columns:
         database.execute("ALTER TABLE tasks ADD COLUMN scheduled_date TEXT")
-    if "description" not in columns:
-        database.execute("ALTER TABLE tasks ADD COLUMN description TEXT")
 
     database.execute(
         """

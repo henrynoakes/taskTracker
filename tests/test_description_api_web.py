@@ -99,7 +99,8 @@ def test_api_description_filter_sort_and_null_handling(client):
 def test_web_create_edit_and_clear_description(client):
     page = client.get('/web/tasks/new')
     assert page.status_code == 200
-    assert 'Description (Markdown supported)' in page.text
+    assert '<label for="description">Description</label>' in page.text
+    assert '(Markdown supported)' not in page.text
     assert Page(page.text).textarea_text == '\n'
     response = client.post('/web/tasks/new', data={
         'name': 'Web task', 'priority': 1, 'duration': 2, 'description': SOURCE,
@@ -147,6 +148,7 @@ def test_task_details_full_description_and_existing_actions(client):
     assert response.status_code == 200
     page = Page(response.text)
     assert '<h1>Requirements</h1>' in response.text
+    assert 'description-heading' not in response.text
     assert '<strong>exercises 1–5</strong>' in response.text
     assert '<ul>' in response.text
     assert 'Additional notes. ' * 100 in response.text
@@ -156,6 +158,9 @@ def test_task_details_full_description_and_existing_actions(client):
     assert 'datetime="' + task['scheduled_date'] + '"' in response.text
     assert any(href == f"/web/tasks/{task['id']}/edit" and text == 'Edit task' for href, text in page.links)
     assert any(tag == 'form' and attrs.get('action') == f"/web/tasks/{task['id']}/complete" and attrs.get('method') == 'post'
+               for tag, attrs in page.elements)
+    assert any(tag == 'button' and attrs.get('class') == 'text-button' for tag, attrs in page.elements)
+    assert any(tag == 'form' and attrs.get('onsubmit') == "return confirm('Are you sure you want to complete this task?');"
                for tag, attrs in page.elements)
     assert all(tag != 'script' for tag, _ in page.elements)
     for _ in range(2):
@@ -177,7 +182,7 @@ def test_no_description_and_missing_details(client):
     task = create(client, None)
     response = client.get(f"/web/tasks/{task['id']}")
     assert response.status_code == 200
-    assert 'description-heading' not in response.text
+    assert 'class="task-description"' not in response.text
     assert 'task-description-preview' not in client.get('/web/').text
     response = client.get('/web/tasks/999')
     assert response.status_code == 404
@@ -191,7 +196,11 @@ def test_web_markdown_cannot_inject_executable_html(client):
     assert all(tag != 'script' for tag, _ in Page(detail.text).elements)
     for url in ['/web/', f"/web/tasks/{task['id']}"]:
         for tag, attrs in Page(client.get(url).text).elements:
-            assert not any(key.startswith('on') for key in attrs)
+            events = {key: value for key, value in attrs.items() if key.startswith('on')}
+            if url != '/web/' and tag == 'form' and attrs.get('action') == f"/web/tasks/{task['id']}/complete":
+                assert events == {'onsubmit': "return confirm('Are you sure you want to complete this task?');"}
+            else:
+                assert events == {}
             if tag == 'a':
                 assert not attrs.get('href', '').startswith('javascript:')
 
@@ -203,7 +212,7 @@ def test_failed_description_update_rolls_back(client):
     assert client.get(f"/tasks/{task['id']}").json() == task
 
 
-def test_startup_migration_commits_description_column(client):
+def test_startup_creates_description_column(client):
     # Each HTTP request uses a fresh connection, so these checks also verify commit.
     connection = db.connect_database(db_connection.database_path)
     try:
@@ -211,3 +220,14 @@ def test_startup_migration_commits_description_column(client):
         assert ops.list_tasks(connection) == []
     finally:
         connection.close()
+
+
+def test_details_always_show_due_date_and_edit_form_has_short_label(client):
+    task = create(client, None)
+    assert client.patch(f"/tasks/{task['id']}", json={'due_date': None}).status_code == 200
+    response = client.get(f"/web/tasks/{task['id']}")
+    assert response.status_code == 200
+    assert '<dt>Due date</dt><dd>None</dd>' in response.text
+    response = client.get(f"/web/tasks/{task['id']}/edit")
+    assert '<label for="description">Description</label>' in response.text
+    assert '(Markdown supported)' not in response.text
