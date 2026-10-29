@@ -1,0 +1,8 @@
+# Application
+fastapi[standard]==0.162.0
+Markdown==3.11.2
+bleach==6.4.0
+
+# Python tests
+pytest==9.1.1
+httpx==0.28.1

@@ -30,19 +30,16 @@ source .venv/bin/activate.fish
 ```
 
 ```
-pip install "fastapi[standard]" markdown bleach
+pip install -r requirements.txt
 ```
 
-The standard installation includes Uvicorn, the ASGI server that will run your application.
+This installs the application and Python test dependencies. FastAPI's standard
+extras include Uvicorn, the ASGI server that will run your application.
 Task descriptions use Python-Markdown for server-side rendering and Bleach for
 HTML sanitisation. Markdown source is stored in SQLite; rendered HTML is never
 stored. Blank descriptions are treated as absent. New databases include a nullable
 description column. Databases created before descriptions were added must be
 recreated or updated manually; startup does not add this column to existing tables.
-
-```
-pip install pytest httpx
-```
 
 Run the application with:
 
