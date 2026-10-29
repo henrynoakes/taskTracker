@@ -37,7 +37,7 @@
                         <button type="submit">Complete</button>
                     </form>
 
-                    <div class="task-info">
+                    <a class="task-info task-link" href="/web/tasks/{{ task.id }}/edit">
                         <span class="task-name">
                             {{ task.name }}
                         </span>
@@ -53,11 +53,7 @@
                                 · Unscheduled
                             {% endif %}
                         </span>
-                    </div>
-                </div>
-
-                <div class="task-actions">
-                    <a href="/web/tasks/{{ task.id }}/edit">Edit</a>
+                    </a>
                 </div>
             </li>
         {% endfor %}
