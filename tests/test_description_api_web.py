@@ -138,7 +138,7 @@ def test_list_preview_formatted_and_task_name_links_to_details(client):
     assert any(attrs.get('class') == 'task-description-preview' for _, attrs in page.elements)
     assert '<strong>exercises 1–5</strong>' in response.text
     assert '<h1>Requirements</h1>' not in response.text
-    assert '<ul>' not in response.text
+    assert '<ul>' in response.text
     assert '<pre>' not in response.text
 
 

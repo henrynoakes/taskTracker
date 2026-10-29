@@ -57,6 +57,32 @@ print("code")
 
 
 @pytest.mark.parametrize('renderer', [render_markdown, render_markdown_preview])
+def test_single_newlines_render_as_line_breaks(renderer):
+    html = renderer('First line\nSecond line\nThird line')
+    assert html.count('<br>') == 2
+
+
+@pytest.mark.parametrize('renderer', [render_markdown, render_markdown_preview])
+@pytest.mark.parametrize(
+    ('source', 'list_tag'),
+    [
+        ('Items:\n1. First\n2. Second\n3. Third', 'ol'),
+        ('Items:\n- First\n- Second\n- Third', 'ul'),
+    ],
+)
+def test_list_can_immediately_follow_introductory_text(renderer, source, list_tag):
+    html = renderer(source)
+    assert f'<{list_tag}>' in html
+    assert html.count('<li>') == 3
+
+
+def test_list_like_text_in_fenced_code_is_unchanged():
+    html = render_markdown('```text\nIntro\n1. Not a list\n```')
+    assert '<ol>' not in html
+    assert 'Intro\n1. Not a list' in html
+
+
+@pytest.mark.parametrize('renderer', [render_markdown, render_markdown_preview])
 @pytest.mark.parametrize('url', ['http://example.com', 'https://example.com', 'mailto:hello@example.com'])
 def test_allowed_link_schemes(renderer, url):
     assert f'href="{url}"' in renderer(f'[Link]({url})')

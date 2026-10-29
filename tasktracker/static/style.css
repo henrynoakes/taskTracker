@@ -219,10 +219,6 @@ a:hover {
 }
 
 .task-description-preview {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
     max-height: 4.5em;
     line-height: 1.5;
     overflow: hidden;
@@ -231,6 +227,20 @@ a:hover {
     margin: 0.25rem 0;
     font-size: 0.875rem;
     color: var(--subtext-1);
+}
+
+.task-description-preview p {
+    margin: 0;
+}
+
+.task-description-preview p + p {
+    margin-top: 0.25rem;
+}
+
+.task-description-preview ul,
+.task-description-preview ol {
+    margin: 0;
+    padding-left: 2em;
 }
 
 .task-description-preview code {
