@@ -44,3 +44,17 @@ Run the application with:
 ```bash
 uvicorn tasktracker.app:app --reload
 ```
+
+## Optional local font dependency
+
+The web UI uses **JetBrains Mono Nerd Font** when it is installed on the device
+running your browser. Download the JetBrainsMono archive from the
+[official Nerd Fonts releases](https://github.com/ryanoasis/nerd-fonts/releases/latest)
+and install the font files using your operating system's font installer. Restart
+your browser if the font does not appear immediately.
+
+The stylesheet supports the `JetBrainsMono Nerd Font` and
+`JetBrainsMono Nerd Font Mono` family names. If neither is available, it uses the
+existing system-font fallback. The site does not download fonts or contact a font
+service, so this adds no network requests or font download time. Installing the
+font on the server alone does not install it on other devices viewing the site.

@@ -1,6 +1,79 @@
 :root {
-    font-family: system-ui, sans-serif;
-    color-scheme: light dark;
+    /* Official Catppuccin Latte palette (light mode). */
+    --base: #eff1f5;
+    --text: #4c4f69;
+    --subtext-1: #5c5f77;
+    --subtext-0: #6c6f85;
+    --surface-0: #ccd0da;
+    --surface-1: #bcc0cc;
+    --surface-2: #acb0be;
+    --overlay-0: #9ca0b0;
+    --selection: rgb(124 127 147 / 25%);
+    --blue: #1e66f5;
+    --lavender: #7287fd;
+    --green: #40a02b;
+    --red: #d20f39;
+
+    font-family: "JetBrainsMono Nerd Font", "JetBrainsMono Nerd Font Mono", system-ui, sans-serif;
+    color-scheme: light;
+    color: var(--text);
+    background-color: var(--base);
+    accent-color: var(--lavender);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Official Catppuccin Mocha palette (dark mode). */
+        --base: #1e1e2e;
+        --text: #cdd6f4;
+        --subtext-1: #bac2de;
+        --subtext-0: #a6adc8;
+        --surface-0: #313244;
+        --surface-1: #45475a;
+        --surface-2: #585b70;
+        --overlay-0: #6c7086;
+        --selection: rgb(147 153 178 / 25%);
+        --blue: #89b4fa;
+        --lavender: #b4befe;
+        --green: #a6e3a1;
+        --red: #f38ba8;
+
+        color-scheme: dark;
+    }
+}
+
+::selection {
+    color: var(--text);
+    background-color: var(--selection);
+}
+
+:focus-visible {
+    outline: 2px solid var(--lavender);
+    outline-offset: 3px;
+}
+
+button,
+input,
+select {
+    color: var(--text);
+    background-color: var(--surface-0);
+    border: 1px solid var(--surface-2);
+    border-radius: 0.25rem;
+}
+
+button:hover {
+    background-color: var(--surface-1);
+    border-color: var(--lavender);
+}
+
+input:focus,
+select:focus {
+    border-color: var(--lavender);
+}
+
+input::placeholder {
+    color: var(--subtext-0);
+    opacity: 1;
 }
 
 body {
@@ -15,7 +88,7 @@ header {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    border-bottom: 1px solid #888;
+    border-bottom: 1px solid var(--surface-2);
 }
 
 header h1 {
@@ -23,7 +96,13 @@ header h1 {
 }
 
 a {
-    color: inherit;
+    color: var(--blue);
+    text-underline-offset: 0.2em;
+}
+
+a:hover {
+    text-decoration-color: var(--lavender);
+    text-decoration-thickness: 2px;
 }
 
 .task-list {
@@ -37,7 +116,7 @@ a {
     align-items: start;
     gap: 0.75rem;
     padding: 0.75rem 0;
-    border-bottom: 1px solid #8885;
+    border-bottom: 1px solid var(--surface-0);
 }
 
 .task-name {
@@ -45,7 +124,7 @@ a {
 }
 
 .task-details {
-    color: gray;
+    color: var(--subtext-0);
     font-size: 0.875rem;
     white-space: nowrap;
 }
@@ -94,6 +173,15 @@ a {
     min-width: 1.25em;
     font: inherit;
     white-space: pre;
+    color: var(--subtext-1);
+}
+
+.completion-control:hover .completion-mark {
+    color: var(--text);
+}
+
+.completion-control input:checked + .completion-mark {
+    color: var(--green);
 }
 
 .completion-mark::before {
@@ -105,23 +193,27 @@ a {
 }
 
 .completion-control input:focus-visible + .completion-mark {
-    outline: 1px solid currentColor;
+    outline: 2px solid var(--lavender);
     outline-offset: 2px;
 }
 
 .completion-control input:disabled + .completion-mark {
-    opacity: 0.5;
+    color: var(--overlay-0);
     cursor: wait;
 }
 
 .task-pending .task-name {
     text-decoration: line-through;
-    opacity: 0.6;
+    color: var(--subtext-0);
 }
 
 .completion-status {
     font-size: 0.75rem;
-    color: gray;
+    color: var(--subtext-0);
+}
+
+.task:not(.task-pending) .completion-status {
+    color: var(--red);
 }
 
 .completion-status:empty {
@@ -155,6 +247,7 @@ a {
 .task-form label {
     margin-top: 0.75rem;
     font-weight: 600;
+    color: var(--subtext-1);
 }
 
 .task-form input,
@@ -176,6 +269,7 @@ a {
     font: inherit;
     padding: 0.5rem 1rem;
     cursor: pointer;
+    border-color: var(--lavender);
 }
 
 .page-actions {
@@ -212,12 +306,16 @@ a {
     max-width: 400px;
     margin-top: 2rem;
     padding-top: 1rem;
-    border-top: 1px solid #8885;
+    border-top: 1px solid var(--surface-0);
 }
 
 .delete-button {
     font: inherit;
     padding: 0.5rem 1rem;
     cursor: pointer;
-    color: #c33;
+    color: var(--red);
+}
+
+.delete-button:hover {
+    border-color: var(--red);
 }
