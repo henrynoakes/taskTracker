@@ -261,9 +261,26 @@ def test_schedule_shares_checkboxes_actions_and_omits_row_dates(client):
     for response, page in [(schedule_response, schedule_page), (tasks_response, tasks_page)]:
         assert '<div class="page-heading">' in response.text
         assert script in response.text
-        assert actions in response.text
+        assert actions.replace('{{ request.url.path }}', response.request.url.path) in response.text
         assert sum(tag == 'input' and attrs.get('type') == 'checkbox' for tag, attrs in page.elements) == 2
         assert '}, 2500)' in response.text
         assert ['/web/tasks/new', '+ Add task'] in page.links
         assert any(tag == 'form' and attrs.get('action') == '/web/schedule' and attrs.get('method') == 'post'
                    for tag, attrs in page.elements)
+
+
+@pytest.mark.parametrize('path', ['/web/', '/web/schedule'])
+def test_reschedule_returns_to_originating_page(client, path):
+    page = Page(client.get(path).text)
+    return_to = next(attrs['value'] for tag, attrs in page.elements
+                     if tag == 'input' and attrs.get('name') == 'return_to')
+    response = client.post('/web/schedule', data={'return_to': return_to}, follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers['location'] == path
+
+
+@pytest.mark.parametrize('data', [{}, {'return_to': 'https://example.com'}, {'return_to': '//example.com'}])
+def test_reschedule_defaults_to_task_list(client, data):
+    response = client.post('/web/schedule', data=data, follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers['location'] == '/web/'

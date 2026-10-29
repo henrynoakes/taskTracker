@@ -92,12 +92,15 @@ def complete_task(task_id: int, connection: database_connection):
 
 
 @router.post("/schedule")
-def regenerate_schedule(connection: database_connection):
+def regenerate_schedule(
+    connection: database_connection,
+    return_to: Annotated[str, Form()] = "/web/",
+):
     with connection:
         scheduler.schedule_tasks(connection)
 
     return RedirectResponse(
-        url="/web/",
+        url=return_to if return_to in {"/web/", "/web/schedule"} else "/web/",
         status_code=303,
     )
 

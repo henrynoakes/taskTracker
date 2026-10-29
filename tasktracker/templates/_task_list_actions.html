@@ -1,5 +1,6 @@
 <div class="page-actions">
     <form action="/web/schedule" method="post">
+        <input type="hidden" name="return_to" value="{{ request.url.path }}">
         <button type="submit" class="text-button">
             <span class="nerd-icon" aria-hidden="true">&#xf073;</span>
             <span class="text-button-label">Reschedule</span>
