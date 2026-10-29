@@ -22,6 +22,7 @@ def test_api_and_web_routes_registered(client):
         "/work-log/summary": {"get"},
         "/web/": {"get"},
         "/web/tasks/new": {"get", "post"},
+        "/web/tasks/{task_id}": {"get"},
         "/web/tasks/{task_id}/edit": {"get", "post"},
         "/web/tasks/{task_id}/complete": {"post"},
         "/web/tasks/{task_id}/delete": {"post"},

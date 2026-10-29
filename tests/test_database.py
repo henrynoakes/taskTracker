@@ -86,7 +86,7 @@ def test_row_to_task(due_date: date | None, completed: bool) -> None:
     try:
         row = connection.execute(
             "SELECT 7 AS id, 'Physics' AS name, 2 AS priority, 4 AS duration, "
-            "? AS due_date, ? AS created_at, ? AS completed, NULL AS scheduled_date",
+            "? AS due_date, ? AS created_at, ? AS completed, NULL AS scheduled_date, NULL AS description",
             (due_date.isoformat() if due_date else None, created_at.isoformat(), int(completed)),
         ).fetchone()
         assert db.row_to_task(row) == Task(
@@ -107,7 +107,7 @@ def test_row_to_task_rejects_invalid_dates(
 ) -> None:
     row = connection.execute(
         "SELECT 1 AS id, 'Task' AS name, 1 AS priority, 1 AS duration, "
-        "? AS due_date, ? AS created_at, 0 AS completed, NULL AS scheduled_date", (due_date, created_at),
+        "? AS due_date, ? AS created_at, 0 AS completed, NULL AS scheduled_date, NULL AS description", (due_date, created_at),
     ).fetchone()
     with pytest.raises(ValueError):
         db.row_to_task(row)
@@ -128,6 +128,7 @@ def test_task_to_params(due_date: date | None, completed: bool) -> None:
         "due_date": "2026-11-10" if due_date else None,
         "completed": 1 if completed else 0,
         "scheduled_date": None,
+        "description": None,
     }
     assert type(params["completed"]) is int
 

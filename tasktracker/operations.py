@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 from . import database as db
 from .models import Task, WorkLogEntry
 from .validation import (
+    validate_description,
     validate_due_date,
     validate_duration,
     validate_fields,
@@ -24,12 +25,14 @@ def add_task(  # A wrapper for insert_task
     duration: int,
     due_date: date | None = None,
     scheduled_date: date | None = None,
+    description: str | None = None,
 ) -> int:
     validate_name(name)
     validate_priority(priority)
     validate_duration(duration)
     validate_due_date(due_date)
     validate_scheduled_date(scheduled_date)
+    validate_description(description)
 
     return db.insert_task(
         connection,
@@ -38,6 +41,7 @@ def add_task(  # A wrapper for insert_task
         duration,
         due_date,
         scheduled_date,
+        description,
     )
 
 

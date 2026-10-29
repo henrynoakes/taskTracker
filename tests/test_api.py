@@ -55,6 +55,7 @@ def test_create_task(client: TestClient, due_date: str | None) -> None:
         "created_at": task["created_at"],
         "completed": False,
         "scheduled_date": None,
+        "description": None,
     }
     assert client.get(f"/tasks/{task['id']}").json() == task
 

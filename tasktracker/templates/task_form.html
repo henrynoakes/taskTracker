@@ -66,6 +66,10 @@
         value="{{ task.due_date.isoformat() if task is defined and task.due_date else '' }}"
     >
 
+    <label for="description">Description (Markdown supported)</label>
+    <textarea id="description" name="description" rows="7">
+{{ task.description if task is defined and task.description is not none else '' }}</textarea>
+
     <div class="form-actions">
         <button type="submit">
             {% if task is defined %}

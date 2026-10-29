@@ -17,6 +17,7 @@ def test_task_defaults() -> None:
     assert task.due_date is None
     assert task.scheduled_date is None
     assert task.completed is False
+    assert task.description is None
 
 
 def test_task_accepts_explicit_optional_fields() -> None:

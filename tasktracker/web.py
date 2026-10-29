@@ -9,10 +9,13 @@ from fastapi.templating import Jinja2Templates
 from . import operations as ops
 from . import scheduler
 from .db_connection import database_connection
+from .markdown_rendering import render_markdown, render_markdown_preview
 
 router = APIRouter(prefix="/web")
 
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
+templates.env.filters["markdown"] = render_markdown
+templates.env.filters["markdown_preview"] = render_markdown_preview
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -47,6 +50,7 @@ def create_task(
     priority: Annotated[int, Form()],
     duration: Annotated[int, Form()],
     due_date: Annotated[str, Form()] = "",
+    description: Annotated[str | None, Form()] = None,
 ):
     parsed_due_date = date.fromisoformat(due_date) if due_date else None
 
@@ -57,6 +61,7 @@ def create_task(
             priority=priority,
             duration=duration,
             due_date=parsed_due_date,
+            description=description,
         )
 
         scheduler.schedule_tasks(connection)
@@ -120,6 +125,7 @@ def edit_task(
     priority: Annotated[int, Form()],
     duration: Annotated[int, Form()],
     due_date: Annotated[str, Form()] = "",
+    description: Annotated[str | None, Form()] = None,
 ):
     try:
         parsed_due_date = date.fromisoformat(due_date) if due_date else None
@@ -138,6 +144,7 @@ def edit_task(
                 "priority": priority,
                 "duration": duration,
                 "due_date": parsed_due_date,
+                "description": description,
             }
 
             for field, value in changes.items():
@@ -160,6 +167,23 @@ def edit_task(
     return RedirectResponse(
         url="/web/",
         status_code=303,
+    )
+
+
+@router.get("/tasks/{task_id}", response_class=HTMLResponse)
+def task_detail(request: Request, task_id: int, connection: database_connection):
+    try:
+        task = ops.get_task(connection, task_id)
+    except ops.TaskNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Task {task_id} not found",
+        ) from None
+
+    return templates.TemplateResponse(
+        request=request,
+        name="task_detail.html",
+        context={"task": task},
     )
 
 

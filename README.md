@@ -30,10 +30,15 @@ source .venv/bin/activate.fish
 ```
 
 ```
-pip install "fastapi[standard]"
+pip install "fastapi[standard]" markdown bleach
 ```
 
 The standard installation includes Uvicorn, the ASGI server that will run your application.
+Task descriptions use Python-Markdown for server-side rendering and Bleach for
+HTML sanitisation. Markdown source is stored in SQLite; rendered HTML is never
+stored. Blank descriptions are treated as absent. Database startup automatically
+adds the nullable description column to existing task tables without replacing
+tasks or work-log entries.
 
 ```
 pip install pytest httpx

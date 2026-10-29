@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}{{ task.name }} — Task Tracker{% endblock %}
+
+{% block content %}
+<nav class="task-breadcrumb" aria-label="Breadcrumb">
+    <a href="/web/">Tasks</a> / {{ task.name }}
+</nav>
+
+<h2 class="task-detail-name">{{ task.name }}</h2>
+
+<dl class="task-metadata">
+    <dt>Priority</dt><dd>{{ task.priority }}</dd>
+    <dt>Duration</dt><dd>{{ task.duration * 30 }} minutes</dd>
+    {% if task.due_date %}
+        <dt>Due date</dt><dd><time datetime="{{ task.due_date.isoformat() }}">{{ task.due_date.day }} {{ task.due_date.strftime('%B %Y') }}</time></dd>
+    {% endif %}
+    {% if task.scheduled_date %}
+        <dt>Scheduled</dt><dd><time datetime="{{ task.scheduled_date.isoformat() }}">{{ task.scheduled_date.day }} {{ task.scheduled_date.strftime('%B %Y') }}</time></dd>
+    {% endif %}
+    <dt>Status</dt><dd>{% if task.completed %}Completed{% else %}Incomplete{% endif %}</dd>
+</dl>
+
+{% if task.description %}
+    <section class="task-description" aria-labelledby="description-heading">
+        <h3 id="description-heading">Description</h3>
+        <div class="markdown-body">{{ task.description | markdown | safe }}</div>
+    </section>
+{% endif %}
+
+<div class="form-actions task-detail-actions">
+    <a href="/web/tasks/{{ task.id }}/edit">Edit task</a>
+    {% if task.completed %}
+        <span class="task-completed">Completed</span>
+    {% else %}
+        <form action="/web/tasks/{{ task.id }}/complete" method="post">
+            <button type="submit">Complete</button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

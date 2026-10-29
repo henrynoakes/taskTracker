@@ -6,7 +6,7 @@ from . import database as db
 from . import operations as ops
 from . import scheduler
 from .db_connection import database_connection
-from .schemas import TaskCreate, TaskUpdate
+from .schemas import TaskCreate, TaskResponse, TaskUpdate
 
 router = APIRouter()
 
@@ -16,7 +16,7 @@ def root() -> dict[str, str]:
     return {"message": "Task tracker API"}
 
 
-@router.get("/tasks/{task_id}")
+@router.get("/tasks/{task_id}", response_model=TaskResponse)
 def get_task(
     task_id: int,
     connection: database_connection,
@@ -54,7 +54,7 @@ def parse_filter_value(field: str, value: str) -> object:
     return value
 
 
-@router.get("/tasks")
+@router.get("/tasks", response_model=list[TaskResponse])
 def list_tasks(
     connection: database_connection,
     field: str | None = None,
@@ -98,7 +98,7 @@ def list_tasks(
         ) from error
 
 
-@router.post("/tasks", status_code=201)
+@router.post("/tasks", status_code=201, response_model=TaskResponse)
 def create_task(
     task: TaskCreate,
     connection: database_connection,
@@ -112,6 +112,7 @@ def create_task(
                 task.duration,
                 task.due_date,
                 task.scheduled_date,
+                task.description,
             )
             scheduler.schedule_tasks(connection)
 
@@ -124,7 +125,7 @@ def create_task(
     return ops.get_task(connection, task_id)
 
 
-@router.patch("/tasks/{task_id}")
+@router.patch("/tasks/{task_id}", response_model=TaskResponse)
 def update_task(
     task_id: int,
     update: TaskUpdate,
@@ -156,7 +157,7 @@ def update_task(
         ) from None
 
 
-@router.post("/tasks/{task_id}/complete")
+@router.post("/tasks/{task_id}/complete", response_model=TaskResponse)
 def complete_task(
     task_id: int,
     connection: database_connection,

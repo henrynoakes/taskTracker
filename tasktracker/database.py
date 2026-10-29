@@ -3,6 +3,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 
 from .models import Task, WorkLogEntry
+from .validation import normalize_description
 
 # The row format:
 # id
@@ -13,6 +14,7 @@ from .models import Task, WorkLogEntry
 # created_at
 # completed
 # scheduled_date
+# description
 
 
 def connect_database(path: str | Path) -> sqlite3.Connection:
@@ -33,7 +35,8 @@ def initialize_database(database: sqlite3.Connection) -> None:
             due_date TEXT,
             created_at TEXT NOT NULL,
             completed INTEGER NOT NULL DEFAULT 0 CHECK (completed IN (0, 1)),
-            scheduled_date TEXT
+            scheduled_date TEXT,
+            description TEXT
         )
         """
     )
@@ -42,6 +45,8 @@ def initialize_database(database: sqlite3.Connection) -> None:
     columns = {row["name"] for row in database.execute("PRAGMA table_info(tasks)")}
     if "scheduled_date" not in columns:
         database.execute("ALTER TABLE tasks ADD COLUMN scheduled_date TEXT")
+    if "description" not in columns:
+        database.execute("ALTER TABLE tasks ADD COLUMN description TEXT")
 
     database.execute(
         """
@@ -72,6 +77,7 @@ def row_to_task(row: sqlite3.Row) -> Task:
         scheduled_date=date.fromisoformat(row["scheduled_date"])
         if row["scheduled_date"] is not None
         else None,  # Allows for scheduled_date to be None
+        description=row["description"],
     )
 
     return task
@@ -89,6 +95,7 @@ def task_to_params(task: Task) -> dict[str, object]:
         "scheduled_date": task.scheduled_date.isoformat()
         if task.scheduled_date is not None
         else None,
+        "description": normalize_description(task.description),
     }
 
 
@@ -99,6 +106,7 @@ def insert_task(
     duration: int,
     due_date: date | None = None,
     scheduled_date: date | None = None,
+    description: str | None = None,
 ) -> int:
     created_at = datetime.now(UTC)
     cursor = database.execute(
@@ -110,7 +118,8 @@ def insert_task(
             due_date,
             created_at,
             completed,
-            scheduled_date
+            scheduled_date,
+            description
         )
         VALUES (
             :name,
@@ -119,7 +128,8 @@ def insert_task(
             :due_date,
             :created_at,
             :completed,
-            :scheduled_date
+            :scheduled_date,
+            :description
         )
         """,
         {
@@ -132,6 +142,7 @@ def insert_task(
             "scheduled_date": scheduled_date.isoformat()
             if scheduled_date is not None
             else None,
+            "description": normalize_description(description),
         },
     )
 
@@ -153,7 +164,8 @@ def update_task(database: sqlite3.Connection, task: Task) -> bool:
             priority = :priority,
             duration = :duration,
             due_date = :due_date,
-            scheduled_date = :scheduled_date
+            scheduled_date = :scheduled_date,
+            description = :description
         WHERE id = :id
         """,
         task_to_params(task),
@@ -165,6 +177,7 @@ def update_task(database: sqlite3.Connection, task: Task) -> bool:
 # Add a search_task() which will fuzzy search for task names
 
 editable_columns = {
+    "description",
     "scheduled_date",
     "name",
     "priority",
@@ -173,6 +186,7 @@ editable_columns = {
 }
 
 task_columns = {
+    "description",
     "id",
     "name",
     "priority",
@@ -192,6 +206,8 @@ def edit_task(
 ) -> bool:
     if field not in editable_columns:
         raise ValueError(f"Invalid database column: {field}")
+    if field == "description":
+        value = normalize_description(value)
 
     cursor = database.execute(
         f"UPDATE tasks SET {field} = :value WHERE id = :id",

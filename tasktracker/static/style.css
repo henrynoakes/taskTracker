@@ -54,7 +54,8 @@
 
 button,
 input,
-select {
+select,
+textarea {
     color: var(--text);
     background-color: var(--surface-0);
     border: 1px solid var(--surface-2);
@@ -67,7 +68,8 @@ button:hover {
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
     border-color: var(--lavender);
 }
 
@@ -127,6 +129,26 @@ a:hover {
     color: var(--subtext-0);
     font-size: 0.875rem;
     white-space: nowrap;
+}
+
+.task-description-preview {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    max-height: 4.5em;
+    line-height: 1.5;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    margin: 0.25rem 0;
+    font-size: 0.875rem;
+    color: var(--subtext-1);
+}
+
+.task-description-preview code {
+    font: inherit;
+    white-space: normal;
 }
 
 @media (max-width: 600px) {
@@ -257,11 +279,93 @@ a:hover {
 }
 
 .task-form input,
-.task-form select {
+.task-form select,
+.task-form textarea {
     font: inherit;
     padding: 0.5rem;
     width: 100%;
     box-sizing: border-box;
+}
+
+.task-form textarea {
+    resize: vertical;
+    min-width: 0;
+    max-width: 100%;
+    line-height: 1.5;
+}
+
+.task-breadcrumb {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--subtext-0);
+    overflow-wrap: anywhere;
+}
+
+.task-detail-name,
+.markdown-body {
+    overflow-wrap: anywhere;
+}
+
+.task-metadata {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.5rem 1rem;
+}
+
+.task-metadata dt {
+    color: var(--subtext-1);
+}
+
+.task-metadata dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.task-description {
+    margin-top: 1.5rem;
+    border-top: 1px solid var(--surface-0);
+}
+
+.markdown-body blockquote {
+    margin-inline: 0;
+    padding-left: 1rem;
+    border-left: 2px solid var(--lavender);
+    color: var(--subtext-1);
+}
+
+.markdown-body code {
+    font-family: inherit;
+    background: var(--surface-0);
+}
+
+.markdown-body pre {
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 0.75rem;
+    box-sizing: border-box;
+    background: var(--surface-0);
+    font-size: 0.875rem;
+}
+
+.markdown-body table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+}
+
+.markdown-body th,
+.markdown-body td {
+    border: 1px solid var(--surface-2);
+    padding: 0.4rem 0.6rem;
+}
+
+.task-detail-actions {
+    flex-wrap: wrap;
+}
+
+.task-completed {
+    color: var(--green);
 }
 
 .form-actions {

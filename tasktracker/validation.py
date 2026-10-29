@@ -49,6 +49,16 @@ def validate_scheduled_date(scheduled_date: object) -> None:
         raise TypeError("Scheduled date must be a date object or None")
 
 
+def validate_description(description: object) -> None:
+    if description is not None and not isinstance(description, str):
+        raise TypeError("Description must be a string or None")
+
+
+def normalize_description(description: object) -> str | None:
+    validate_description(description)
+    return description if isinstance(description, str) and description.strip() else None
+
+
 def validate_fields(field: object) -> None:
     if field not in validators:
         raise ValueError(f"Unknown field: {field}")
@@ -62,4 +72,5 @@ validators: dict[
     "priority": validate_priority,
     "due_date": validate_due_date,
     "scheduled_date": validate_scheduled_date,
+    "description": validate_description,
 }

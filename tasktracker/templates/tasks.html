@@ -40,10 +40,13 @@
                         <button type="submit">Complete</button>
                     </form>
 
-                    <a class="task-info task-link" href="/web/tasks/{{ task.id }}/edit">
-                        <span class="task-name">
+                    <div class="task-info">
+                        <a class="task-name task-link" href="/web/tasks/{{ task.id }}">
                             {{ task.name }}
-                        </span>
+                        </a>
+                        {% if task.description %}
+                            <div class="task-description-preview">{{ task.description | markdown_preview | safe }}</div>
+                        {% endif %}
                         <span class="completion-status" role="status"></span>
 
                         <span class="task-details">
@@ -56,7 +59,7 @@
                                 · Unscheduled
                             {% endif %}
                         </span>
-                    </a>
+                    </div>
                 </div>
             </li>
         {% endfor %}

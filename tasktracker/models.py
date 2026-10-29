@@ -12,6 +12,7 @@ class Task:
     due_date: date | None = None
     completed: bool = False
     scheduled_date: date | None = None
+    description: str | None = None
 
 
 @dataclass
